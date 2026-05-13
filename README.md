@@ -1,73 +1,103 @@
-# React + TypeScript + Vite
+# Vela
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[English](./README.md) | [中文](./README.zh.md)
 
-Currently, two official plugins are available:
+A self-hosted personal navigation dashboard. Organize your bookmarks into draggable groups, share the instance with family or a team via invite codes, and switch language and theme on the fly.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Invite-code registration** — closed by default; only people with a valid invite code can sign up
+- **Drag-and-drop navigation** — reorder groups and links with `@dnd-kit`, with optimistic persistence to SQLite
+- **Browser bookmark import** — import an exported `bookmarks.html` from any major browser
+- **Multi-user with roles** — `ADMIN` users get a system-settings panel to manage users and invite codes
+- **Internationalization** — built-in English and Simplified Chinese (`react-i18next`)
+- **Theming** — light / dark / system, powered by `next-themes`
+- **One-command Docker deploy** — backend + frontend + persistent SQLite volume
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech stack
 
-## Expanding the ESLint configuration
+| Layer    | Stack                                                                          |
+| -------- | ------------------------------------------------------------------------------ |
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS v4, shadcn/ui, react-router 7         |
+| Backend  | Fastify 5, `@fastify/jwt`, bcryptjs, better-sqlite3                            |
+| Storage  | SQLite (WAL mode) on the host filesystem                                       |
+| Deploy   | Docker Compose (Nginx static + Node.js backend)                                |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Quick start with Docker
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Requires Docker 24+ with the Compose plugin.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+git clone <repo-url> vela
+cd vela
+cp .env.example .env
+# Edit .env: set JWT_SECRET to a long random string (e.g. `openssl rand -base64 48`)
+docker compose up -d --build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open <http://localhost:8080> and register the first administrator with the invite code from `INITIAL_INVITE_CODE` (defaults to `00000000`). Once consumed, generate further invite codes from the **System Settings → Invite Codes** page.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+SQLite data is persisted to `./data/` on the host. Back it up by copying that directory.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Local development
+
+Requires Node.js 22+ (LTS).
+
+```sh
+npm install
+npm --prefix backend install
+cp .env.example .env        # only needed once
+./dev.sh                    # or: npm run dev
 ```
+
+- Frontend: <http://localhost:5173>
+- Backend:  <http://localhost:3000>
+
+Vite proxies `/api/*` to the backend, so the frontend always calls relative URLs.
+
+### Useful scripts
+
+| Command                       | What it does                                |
+| ----------------------------- | ------------------------------------------- |
+| `npm run dev`                 | Run backend and frontend concurrently       |
+| `npm run dev:frontend`        | Vite dev server only                        |
+| `npm run dev:backend`         | Fastify with `tsx watch` only               |
+| `npm run build`               | Build backend (tsc) then frontend (vite)    |
+| `npm run lint`                | ESLint over the frontend                    |
+| `npm run preview`             | Preview the built frontend locally          |
+
+## Configuration
+
+All runtime configuration lives in a single `.env` file at the repository root.
+
+| Variable              | Required | Description                                                                 |
+| --------------------- | -------- | --------------------------------------------------------------------------- |
+| `JWT_SECRET`          | Yes      | Secret used to sign JWTs. Use a long random string.                         |
+| `INITIAL_INVITE_CODE` | No       | Seeded as an ADMIN invite on first boot. Defaults to `00000000`. Has no effect after it has been used. |
+
+## Project layout
+
+```
+vela/
+├── src/                # React frontend
+│   ├── pages/          # Route-level pages (Auth, Dashboard, Account, SystemSettings, About)
+│   ├── layouts/        # BaseLayout with header, theme, language, profile menu
+│   ├── components/     # Shared components, including shadcn/ui primitives
+│   ├── contexts/       # AuthContext: token + user in localStorage
+│   ├── hooks/          # Data hooks (e.g. useNavData)
+│   └── router/         # react-router config (lazy routes)
+├── backend/
+│   └── app/
+│       ├── main.ts     # Fastify entry: CORS, JWT, plugins, routes
+│       ├── db.ts       # SQLite init and schema
+│       ├── plugins/    # authenticate decorator
+│       └── router/     # auth.ts, admin.ts, nav.ts
+├── docker-compose.yml
+├── Dockerfile          # Frontend (Nginx serving built assets)
+├── backend/Dockerfile  # Backend (Node.js LTS)
+└── nginx.conf          # Static hosting + /api reverse proxy
+```
+
+## License
+
+[MIT](./LICENSE) © 2026 Uzhi
