@@ -1,30 +1,6 @@
 import { useState, useEffect } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import type { NavGroup, NavItem } from '@/types';
-import i18n from '@/i18n';
-
-const getDefaultData = (): NavGroup[] => [
-  {
-    id: 'default',
-    title: i18n.t('defaultData.groupTitle', { defaultValue: '常用工具' }),
-    items: [
-      {
-        id: '1',
-        url: 'https://github.com',
-        icon: 'https://github.com/favicon.ico',
-        title: i18n.t('defaultData.githubTitle', { defaultValue: 'GitHub' }),
-        description: i18n.t('defaultData.githubDesc', { defaultValue: '代码托管与协作平台' })
-      },
-      {
-        id: '2',
-        url: 'https://react.dev',
-        icon: 'https://react.dev/favicon.ico',
-        title: i18n.t('defaultData.reactTitle', { defaultValue: 'React' }),
-        description: i18n.t('defaultData.reactDesc', { defaultValue: '构建 Web 用户界面的 JavaScript 库' })
-      }
-    ]
-  }
-];
 
 export const useNavData = () => {
   const [groups, setGroups] = useState<NavGroup[]>([]);
@@ -45,21 +21,7 @@ export const useNavData = () => {
         
         if (response.ok) {
           const data = await response.json();
-          if (data && data.length > 0) {
-            setGroups(data);
-          } else {
-            // First time empty DB, seed with default
-            const defData = getDefaultData();
-            setGroups(defData);
-            await fetch('/api/nav', {
-              method: 'PUT',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify(defData)
-            });
-          }
+          setGroups(Array.isArray(data) ? data : []);
         } else if (response.status === 401) {
           // Token might be expired
           localStorage.removeItem('vela_token');

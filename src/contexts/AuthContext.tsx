@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 
-interface User {
+export interface User {
   id: string;
   email: string;
   role: string;
@@ -12,6 +12,7 @@ interface AuthContextType {
   token: string | null;
   user: User | null;
   login: (token: string, user: User) => void;
+  updateUser: (user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -32,6 +33,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('vela_user', JSON.stringify(newUser));
   };
 
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem('vela_user', JSON.stringify(updatedUser));
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -40,7 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ token, user, login, updateUser, logout, isAuthenticated: !!token }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, ChevronDown } from 'lucide-react';
+import { z } from 'zod';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from 'react-i18next';
 import {
@@ -35,8 +36,12 @@ const SearchBar = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      window.open(`${currentEngine.url}${encodeURIComponent(query)}`, '_blank');
+    const result = z.object({
+      query: z.string().trim().min(1),
+    }).safeParse({ query });
+
+    if (result.success) {
+      window.open(`${currentEngine.url}${encodeURIComponent(result.data.query)}`, '_blank');
       setQuery('');
     }
   };

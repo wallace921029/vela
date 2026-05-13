@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import RequireAuth from "@/components/RequireAuth";
 
 const router = createBrowserRouter([
@@ -40,6 +40,40 @@ const router = createBrowserRouter([
               const { default: About } = await import("@/pages/About/About.tsx");
               return { Component: About };
             },
+          },
+          {
+            path: "account",
+            lazy: async () => {
+              const { default: AccountSettings } = await import("@/pages/Account/AccountSettings.tsx");
+              return { Component: AccountSettings };
+            },
+          },
+          {
+            path: "system",
+            lazy: async () => {
+              const { default: SystemSettings } = await import("@/pages/SystemSettings/SystemSettings.tsx");
+              return { Component: SystemSettings };
+            },
+            children: [
+              {
+                index: true,
+                element: <Navigate to="users" replace />,
+              },
+              {
+                path: "users",
+                lazy: async () => {
+                  const { default: UserManagementPage } = await import("@/pages/SystemSettings/UserManagementPage.tsx");
+                  return { Component: UserManagementPage };
+                },
+              },
+              {
+                path: "invites",
+                lazy: async () => {
+                  const { default: InviteCodeManagementPage } = await import("@/pages/SystemSettings/InviteCodeManagementPage.tsx");
+                  return { Component: InviteCodeManagementPage };
+                },
+              },
+            ],
           },
         ],
       }

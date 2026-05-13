@@ -1,5 +1,3 @@
-import { t } from 'i18next';
-
 export interface WeatherData {
   temperature: number;
   weatherCode: number;

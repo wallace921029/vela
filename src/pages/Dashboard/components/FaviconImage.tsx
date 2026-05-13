@@ -1,11 +1,18 @@
 import { useState, useMemo } from 'react';
 
+const faviconServices = [
+  (domain: string) => `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
+  (domain: string) => `https://icon.horse/icon/${domain}`,
+  (domain: string) => `https://favicons.githubusercontent.com/${domain}`,
+  (domain: string) => `https://${domain}/favicon.ico`,
+];
+
 export const FaviconImage = ({ src, title, url, className = "" }: { src?: string, title: string, url: string, className?: string }) => {
   const [errorCount, setErrorCount] = useState(0);
   
   const domain = useMemo(() => {
     try {
-      const u = url.startsWith('http') ? url : `https://${url}`;
+      const u = /^https?:\/\//i.test(url) ? url : `https://${url}`;
       return new URL(u).hostname;
     } catch {
       return '';
@@ -16,10 +23,7 @@ export const FaviconImage = ({ src, title, url, className = "" }: { src?: string
     const list = [];
     if (src) list.push(src);
     if (domain) {
-      list.push(`https://favicon.im/${domain}`);
-      list.push(`https://api.vvhan.com/api/ico?url=${domain}`);
-      list.push(`https://favicon.yandex.net/favicon/${domain}`);
-      list.push(`https://${domain}/favicon.ico`);
+      list.push(...faviconServices.map((service) => service(domain)));
     }
     return list;
   }, [src, domain]);

@@ -2,6 +2,11 @@ import type { NavGroup, NavItem } from '@/types';
 
 const generateId = () => Date.now().toString() + Math.random().toString(36).substring(2, 9);
 
+const getBookmarkIcon = (anchor: HTMLAnchorElement) => {
+  const icon = anchor.getAttribute('icon') || '';
+  return icon.startsWith('data:') ? '' : icon;
+};
+
 export const parseBookmarksHTML = (html: string): NavGroup[] => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
@@ -29,7 +34,7 @@ export const parseBookmarksHTML = (html: string): NavGroup[] => {
           id: generateId(),
           title: a.textContent || 'Untitled',
           url: a.getAttribute('href') || '',
-          icon: a.getAttribute('icon') || '',
+          icon: getBookmarkIcon(a),
           description: ''
         });
       }

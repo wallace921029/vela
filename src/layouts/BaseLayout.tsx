@@ -8,6 +8,8 @@ import {
   Moon,
   Monitor,
   Upload,
+  SlidersHorizontal,
+  Info,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "next-themes";
@@ -25,7 +27,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useRef } from "react";
-import { parseBookmarksHTML } from "@/utils/bookmarkParser";
+import { importBookmarksFile } from "@/utils/bookmarkImport";
 import AuroraBackground from "@/components/AuroraBackground";
 import logo from "@/assets/apple-touch-icon.png";
 
@@ -43,37 +45,25 @@ const BaseLayout = () => {
 
   const handleImportBookmarks = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const html = event.target?.result as string;
-      if (html) {
-        const groups = parseBookmarksHTML(html);
-        if (groups.length > 0) {
-          const token = localStorage.getItem('vela_token');
-          if (token) {
-            try {
-              await fetch('/api/nav', {
-                method: 'PUT',
-                headers: { 
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(groups)
-              });
-              window.location.reload();
-            } catch (err) {
-              console.error("Failed to import to backend", err);
-              alert("Import failed to save to server");
-            }
-          }
-        } else {
-          alert("No bookmarks found in the file.");
-        }
+    try {
+      const result = await importBookmarksFile(file, localStorage.getItem('vela_token'));
+
+      if (result.ok) {
+        window.location.reload();
+      } else if (result.reason === 'empty') {
+        alert("No bookmarks found in the file.");
+      } else {
+        alert("Import failed to save to server");
       }
-    };
-    reader.readAsText(file);
+    } catch (err) {
+      console.error("Failed to import bookmarks", err);
+      alert("Import failed to read the file");
+    }
+
     e.target.value = "";
   };
 
@@ -82,11 +72,15 @@ const BaseLayout = () => {
       <AuroraBackground />
 
       <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/50 dark:bg-neutral-950/50 border-b border-neutral-200/60 dark:border-neutral-800/60">
-        <div className="mx-auto max-w-6xl px-6 md:px-12 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 select-none cursor-pointer">
+        <div className="w-full px-6 md:px-12 h-16 flex items-center justify-between">
+          <button
+            type="button"
+            className="flex items-center gap-2 select-none outline-none"
+            onClick={() => navigate("/")}
+          >
             <img src={logo} alt="Vela" className="size-6" />
             <span className="text-xl font-bold tracking-tight">Vela</span>
-          </div>
+          </button>
 
           <div className="flex items-center gap-2 md:gap-4">
             <DropdownMenu>
@@ -164,10 +158,20 @@ const BaseLayout = () => {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer">
+                    <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/account")}>
                       <Settings className="mr-2 size-4" />
                       <span>{t("header.accountSettings")}</span>
                     </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/about")}>
+                      <Info className="mr-2 size-4" />
+                      <span>{t("header.about")}</span>
+                    </DropdownMenuItem>
+                    {user.role === 'ADMIN' && (
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/system")}>
+                        <SlidersHorizontal className="mr-2 size-4" />
+                        <span>{t("header.systemSettings")}</span>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                       className="cursor-pointer"
                       onClick={() => fileInputRef.current?.click()}

@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Local env files (use .env.example as the template)
+.env
+.env.*
+!.env.example
+
+# Runtime data mounted by docker-compose
+data/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

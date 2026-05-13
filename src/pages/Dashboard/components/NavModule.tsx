@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
 import { useNavData } from '@/hooks/useNavData';
 import type { NavGroup, NavItem } from '@/types';
+import { getFirstValidationError } from '@/utils/validation';
 import { 
   Plus, 
   MoreVertical, 
   Pencil, 
   Trash2, 
-  Settings,
   FolderPlus,
   ArrowDownAZ,
   ArrowUpZA,
@@ -27,6 +28,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -137,6 +148,9 @@ const SortDialog = ({ open, onOpenChange, title, items, onSave }: {
 
 
 type CardSize = 'small' | 'medium' | 'large';
+type DeleteTarget =
+  | { type: 'group'; groupId: string; title: string; itemCount: number }
+  | { type: 'item'; groupId: string; itemId: string; title: string };
 
 const CARD_SIZE_STYLES: Record<CardSize, { card: string; icon: string; title: string; desc: string; gap: string }> = {
   small: { card: 'h-[52px] p-2 rounded-lg', icon: 'w-6 h-6 rounded-md', title: 'text-xs', desc: 'text-[9px]', gap: 'gap-2' },
@@ -270,24 +284,13 @@ const GroupBlock = ({
             <ListOrdered className="size-4" />
           </Button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
-                <Settings className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => onEditGroup(group)}>
-                <Pencil className="mr-2 size-4" /> {t('nav.editGroup')}
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="text-destructive focus:text-destructive" 
-                onClick={() => onDeleteGroup(group.id)}
-              >
-                <Trash2 className="mr-2 size-4" /> {t('nav.deleteGroup')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button variant="ghost" size="icon" onClick={() => onEditGroup(group)} className="h-8 w-8 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100" title={t('nav.editGroup')}>
+            <Pencil className="size-4" />
+          </Button>
+
+          <Button variant="ghost" size="icon" onClick={() => onDeleteGroup(group.id)} className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" title={t('nav.deleteGroup')}>
+            <Trash2 className="size-4" />
+          </Button>
         </div>
       </div>
 
@@ -333,10 +336,12 @@ const NavModule = () => {
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<NavGroup | null>(null);
   const [groupTitle, setGroupTitle] = useState('');
+  const [groupError, setGroupError] = useState('');
 
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<{groupId: string, item: NavItem | null} | null>(null);
   const [itemData, setItemData] = useState({ title: '', url: '', icon: '', description: '' });
+  const [itemError, setItemError] = useState('');
 
   // Dialog State for custom sort
   const [customSortGroupOpen, setCustomSortGroupOpen] = useState(false);
@@ -345,6 +350,7 @@ const NavModule = () => {
   // Search state
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
   if (!isLoaded) {
     return <div className="flex justify-center py-20 text-neutral-400">Loading...</div>;
@@ -358,15 +364,24 @@ const NavModule = () => {
       setEditingGroup(null);
       setGroupTitle('');
     }
+    setGroupError('');
     setGroupDialogOpen(true);
   };
 
   const handleSaveGroup = () => {
-    if (!groupTitle.trim()) return;
+    const result = z.object({
+      title: z.string().trim().min(1, t('validation.groupTitle')),
+    }).safeParse({ title: groupTitle });
+
+    if (!result.success) {
+      setGroupError(getFirstValidationError(result.error, t('validation.required')));
+      return;
+    }
+
     if (editingGroup) {
-      updateGroup(editingGroup.id, groupTitle);
+      updateGroup(editingGroup.id, result.data.title);
     } else {
-      addGroup(groupTitle);
+      addGroup(result.data.title);
     }
     setGroupDialogOpen(false);
   };
@@ -379,18 +394,53 @@ const NavModule = () => {
       setEditingItem({ groupId, item: null });
       setItemData({ title: '', url: '', icon: '', description: '' });
     }
+    setItemError('');
     setItemDialogOpen(true);
   };
 
   const handleSaveItem = () => {
-    if (!itemData.title.trim() || !itemData.url.trim()) return;
+    const result = z.object({
+      title: z.string().trim().min(1, t('validation.itemTitle')),
+      url: z.string().trim().url(t('validation.url')),
+      icon: z.string().trim().refine((value) => !value || /^https?:\/\//i.test(value), t('validation.url')),
+      description: z.string().trim(),
+    }).safeParse(itemData);
+
+    if (!result.success) {
+      setItemError(getFirstValidationError(result.error, t('validation.required')));
+      return;
+    }
 
     if (editingItem?.item) {
-      updateItem(editingItem.groupId, editingItem.item.id, itemData);
+      updateItem(editingItem.groupId, editingItem.item.id, result.data);
     } else if (editingItem) {
-      addItem(editingItem.groupId, itemData);
+      addItem(editingItem.groupId, result.data);
     }
     setItemDialogOpen(false);
+  };
+
+  const handleRequestDeleteGroup = (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+    setDeleteTarget({ type: 'group', groupId, title: group.title, itemCount: group.items.length });
+  };
+
+  const handleRequestDeleteItem = (groupId: string, itemId: string) => {
+    const item = groups.find(g => g.id === groupId)?.items.find(i => i.id === itemId);
+    if (!item) return;
+    setDeleteTarget({ type: 'item', groupId, itemId, title: item.title });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+
+    if (deleteTarget.type === 'group') {
+      deleteGroup(deleteTarget.groupId);
+    } else {
+      deleteItem(deleteTarget.groupId, deleteTarget.itemId);
+    }
+
+    setDeleteTarget(null);
   };
 
   const handleToggleGlobalSort = () => {
@@ -427,10 +477,9 @@ const NavModule = () => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300 fill-mode-both">
       {/* Global Operations Bar */}
-      {groups.length > 0 && (
-        <div className="flex justify-center items-center gap-2 px-2">
-          {/* Search */}
-          {searchOpen ? (
+      <div className="flex justify-center items-center gap-2 px-2">
+        {/* Search */}
+        {searchOpen ? (
             <div className="relative flex items-center">
               <Search className="absolute left-3 size-4 text-neutral-400 pointer-events-none" />
               <Input
@@ -466,57 +515,43 @@ const NavModule = () => {
           <Button variant="outline" size="icon" onClick={() => handleOpenGroupDialog()} className="rounded-full shadow-sm" title={t('nav.newGroup')}>
             <FolderPlus className="size-4" />
           </Button>
-        </div>
-      )}
+      </div>
 
       {/* Content with optional sidebar index */}
-      <div className="flex gap-6">
+      <div className={`grid gap-5 ${filteredGroups.length > 5 ? 'lg:grid-cols-[10rem_minmax(0,1fr)] xl:grid-cols-[11rem_minmax(0,1fr)]' : ''}`}>
         {/* Left sidebar group index (when > 5 groups) */}
         {filteredGroups.length > 5 && (
-          <nav className="hidden lg:flex flex-col gap-1.5 sticky top-24 self-start w-36 shrink-0 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2">
-            {filteredGroups.map((group) => (
-              <button
-                key={group.id}
-                onClick={() => document.getElementById(`group-${group.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="text-left text-xs font-medium text-neutral-500 dark:text-neutral-400 hover:text-primary dark:hover:text-primary truncate px-2.5 py-1.5 rounded-lg hover:bg-white/60 dark:hover:bg-neutral-800/60 transition-colors"
-                title={group.title}
-              >
-                {group.title}
-              </button>
-            ))}
-          </nav>
+          <aside className="hidden lg:block min-w-0">
+            <nav className="sticky top-24 z-10 flex max-h-[calc(100vh-7rem)] w-full flex-col gap-1.5 overflow-y-auto rounded-lg border border-neutral-200/60 bg-white/55 p-2 shadow-sm backdrop-blur-md dark:border-neutral-800/60 dark:bg-neutral-950/45">
+              {filteredGroups.map((group) => (
+                <button
+                  key={group.id}
+                  onClick={() => document.getElementById(`group-${group.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className="min-w-0 whitespace-normal break-words rounded-md px-2.5 py-1.5 text-left text-xs font-medium leading-snug text-neutral-500 transition-colors hover:bg-white/70 hover:text-primary dark:text-neutral-400 dark:hover:bg-neutral-800/70 dark:hover:text-primary"
+                  title={group.title}
+                >
+                  {group.title}
+                </button>
+              ))}
+            </nav>
+          </aside>
         )}
 
         <div className="flex-1 min-w-0 space-y-10 pb-20">
-          {groups.length === 0 ? (
-            <div className="text-center py-20 bg-white/50 dark:bg-neutral-900/50 rounded-3xl border border-dashed border-neutral-200 dark:border-neutral-800">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-neutral-200 dark:bg-neutral-800 mb-6">
-                <FolderPlus className="size-8 text-neutral-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-neutral-700 dark:text-neutral-300">{t('nav.noGroup')}</h3>
-              <p className="text-neutral-500 mt-2 mb-6 max-w-sm mx-auto text-sm">
-                {t('nav.createFirst')}
-              </p>
-              <Button onClick={() => handleOpenGroupDialog()} variant="outline">
-                {t('nav.createFirstBtn')}
-              </Button>
-            </div>
-          ) : (
-            filteredGroups.map((group) => (
-              <GroupBlock 
-                key={group.id} 
-                group={group} 
-                onEditGroup={handleOpenGroupDialog}
-                onDeleteGroup={deleteGroup}
-                onOpenItemDialog={handleOpenItemDialog}
-                onEditItem={handleOpenItemDialog}
-                onDeleteItem={deleteItem}
-                onSortItems={sortItems}
-                onOpenCustomSort={setCustomSortItemOpenFor}
-                cardSize={cardSize}
-              />
-            ))
-          )}
+          {filteredGroups.map((group) => (
+            <GroupBlock 
+              key={group.id} 
+              group={group} 
+              onEditGroup={handleOpenGroupDialog}
+              onDeleteGroup={handleRequestDeleteGroup}
+              onOpenItemDialog={handleOpenItemDialog}
+              onEditItem={handleOpenItemDialog}
+              onDeleteItem={handleRequestDeleteItem}
+              onSortItems={sortItems}
+              onOpenCustomSort={setCustomSortItemOpenFor}
+              cardSize={cardSize}
+            />
+          ))}
         </div>
       </div>
 
@@ -529,6 +564,7 @@ const NavModule = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {groupError && <p className="text-sm text-destructive">{groupError}</p>}
             <div className="grid gap-2">
               <Label htmlFor="group-title">{t('nav.groupName')}</Label>
               <Input 
@@ -554,6 +590,7 @@ const NavModule = () => {
             <DialogTitle>{editingItem?.item ? t('nav.edit') : t('nav.addNav')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {itemError && <p className="text-sm text-destructive">{itemError}</p>}
             <div className="grid gap-2">
               <Label htmlFor="item-title">{t('nav.itemTitle')} <span className="text-destructive">*</span></Label>
               <Input 
@@ -606,6 +643,36 @@ const NavModule = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteTarget?.type === 'group'
+                ? t('nav.confirmDeleteGroupTitle', { defaultValue: '删除分组？' })
+                : t('nav.confirmDeleteItemTitle', { defaultValue: '删除导航？' })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.type === 'group'
+                ? t('nav.confirmDeleteGroupDesc', {
+                    defaultValue: `将删除“${deleteTarget.title}”及其中 ${deleteTarget.itemCount} 个导航。此操作无法撤销。`,
+                    title: deleteTarget.title,
+                    count: deleteTarget.itemCount,
+                  })
+                : t('nav.confirmDeleteItemDesc', {
+                    defaultValue: `将删除“${deleteTarget?.title ?? ''}”。此操作无法撤销。`,
+                    title: deleteTarget?.title,
+                  })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('nav.cancel')}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleConfirmDelete}>
+              {t('nav.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <SortDialog 
         open={customSortGroupOpen} 
