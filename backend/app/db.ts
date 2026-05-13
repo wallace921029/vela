@@ -49,6 +49,18 @@ export const initializeDatabase = () => {
       order_index INTEGER NOT NULL,
       FOREIGN KEY(group_id) REFERENCES groups(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS notes (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      title TEXT,
+      content TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_notes_user_updated ON notes(user_id, updated_at DESC);
   `);
 
   ensureColumn('users', 'status', "TEXT NOT NULL DEFAULT 'ACTIVE'");

@@ -42,6 +42,13 @@ const router = createBrowserRouter([
             },
           },
           {
+            path: "notes",
+            lazy: async () => {
+              const { default: Notes } = await import("@/pages/Notes/Notes.tsx");
+              return { Component: Notes };
+            },
+          },
+          {
             path: "account",
             lazy: async () => {
               const { default: AccountSettings } = await import("@/pages/Account/AccountSettings.tsx");

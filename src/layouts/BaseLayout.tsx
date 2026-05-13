@@ -7,6 +7,8 @@ import {
   Sun,
   Moon,
   Monitor,
+  MonitorOff,
+  NotebookPen,
   Upload,
   SlidersHorizontal,
   Info,
@@ -27,8 +29,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useRef } from "react";
+import { toast } from "sonner";
 import { importBookmarksFile } from "@/utils/bookmarkImport";
 import AuroraBackground from "@/components/AuroraBackground";
+import { useWakeLock } from "@/hooks/useWakeLock";
 import logo from "@/assets/apple-touch-icon.png";
 
 const BaseLayout = () => {
@@ -37,6 +41,7 @@ const BaseLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const wakeLock = useWakeLock();
 
   const handleLogout = () => {
     logout();
@@ -55,13 +60,13 @@ const BaseLayout = () => {
       if (result.ok) {
         window.location.reload();
       } else if (result.reason === 'empty') {
-        alert("No bookmarks found in the file.");
+        toast.warning(t('header.import.empty'));
       } else {
-        alert("Import failed to save to server");
+        toast.error(t('header.import.saveFailed'));
       }
     } catch (err) {
       console.error("Failed to import bookmarks", err);
-      alert("Import failed to read the file");
+      toast.error(t('header.import.readFailed'));
     }
 
     e.target.value = "";
@@ -83,6 +88,38 @@ const BaseLayout = () => {
           </button>
 
           <div className="flex items-center gap-2 md:gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/notes')}
+              title={t('header.quickNotes')}
+              className="h-9 w-9 rounded-full text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
+            >
+              <NotebookPen className="h-4 w-4" />
+              <span className="sr-only">{t('header.quickNotes')}</span>
+            </Button>
+
+            {wakeLock.isSupported && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={wakeLock.toggle}
+                aria-pressed={wakeLock.enabled}
+                title={t(wakeLock.enabled ? "header.keepScreenOff" : "header.keepScreenOn")}
+                className={
+                  "h-9 w-9 rounded-full transition-colors " +
+                  (wakeLock.enabled
+                    ? "text-emerald-500 hover:text-emerald-400 dark:text-emerald-400 dark:hover:text-emerald-300"
+                    : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50")
+                }
+              >
+                {wakeLock.enabled ? <Monitor className="h-4 w-4" /> : <MonitorOff className="h-4 w-4" />}
+                <span className="sr-only">
+                  {t(wakeLock.enabled ? "header.keepScreenOff" : "header.keepScreenOn")}
+                </span>
+              </Button>
+            )}
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -207,6 +244,13 @@ const BaseLayout = () => {
         ref={fileInputRef}
         onChange={handleImportBookmarks}
       />
+
+      {wakeLock.enabled && (
+        <div
+          aria-hidden
+          className="vela-wake-overlay pointer-events-none fixed inset-0 z-50"
+        />
+      )}
     </div>
   );
 };

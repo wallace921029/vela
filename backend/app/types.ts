@@ -57,3 +57,12 @@ export interface NavGroupInput {
   title: string;
   items?: NavItemInput[];
 }
+
+export interface NoteRow {
+  id: string;
+  user_id: string;
+  title: string | null;
+  content: string;
+  created_at: number;
+  updated_at: number;
+}

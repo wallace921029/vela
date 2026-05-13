@@ -9,6 +9,7 @@ import { registerAuthenticatePlugin } from './plugins/authenticate.js';
 import { registerAdminRoutes } from './router/admin.js';
 import { registerAuthRoutes } from './router/auth.js';
 import { registerNavRoutes } from './router/nav.js';
+import { registerNotesRoutes } from './router/notes.js';
 
 // Load .env from repo root (works for both `app/main.ts` in dev and `dist/main.js` after build).
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -35,6 +36,7 @@ registerAuthenticatePlugin(fastify);
 registerAuthRoutes(fastify);
 registerAdminRoutes(fastify);
 registerNavRoutes(fastify);
+registerNotesRoutes(fastify);
 
 const start = async () => {
   try {
