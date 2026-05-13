@@ -53,7 +53,7 @@ export const initializeDatabase = () => {
 
   ensureColumn('users', 'status', "TEXT NOT NULL DEFAULT 'ACTIVE'");
 
-  const initialInviteCode = process.env.INITIAL_INVITE_CODE || '00000000';
+  const initialInviteCode = process.env.INITIAL_INVITE_CODE || '000000';
   const checkInvite = db.prepare('SELECT * FROM invite_codes WHERE code = ?').get(initialInviteCode);
   if (!checkInvite) {
     db.prepare('INSERT INTO invite_codes (code, role) VALUES (?, ?)').run(initialInviteCode, 'ADMIN');

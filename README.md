@@ -4,6 +4,14 @@
 
 A self-hosted personal navigation dashboard. Organize your bookmarks into draggable groups, share the instance with family or a team via invite codes, and switch language and theme on the fly.
 
+## Preview
+
+| Light | Dark |
+| ----- | ---- |
+| ![Dashboard — light](./captures/Screenshot%202026-05-14%20at%2001.21.39.png) | ![Dashboard — dark](./captures/Screenshot%202026-05-14%20at%2001.21.18.png) |
+
+![Invite code management](./captures/Screenshot%202026-05-14%20at%2001.22.00.png)
+
 ## Features
 
 - **Invite-code registration** — closed by default; only people with a valid invite code can sign up
@@ -35,7 +43,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Open <http://localhost:8080> and register the first administrator with the invite code from `INITIAL_INVITE_CODE` (defaults to `00000000`). Once consumed, generate further invite codes from the **System Settings → Invite Codes** page.
+Open <http://localhost:10000> and register the first administrator with the invite code from `INITIAL_INVITE_CODE` (defaults to `000000`). Once consumed, generate further invite codes from the **System Settings → Invite Codes** page.
 
 SQLite data is persisted to `./data/` on the host. Back it up by copying that directory.
 
@@ -73,7 +81,7 @@ All runtime configuration lives in a single `.env` file at the repository root.
 | Variable              | Required | Description                                                                 |
 | --------------------- | -------- | --------------------------------------------------------------------------- |
 | `JWT_SECRET`          | Yes      | Secret used to sign JWTs. Use a long random string.                         |
-| `INITIAL_INVITE_CODE` | No       | Seeded as an ADMIN invite on first boot. Defaults to `00000000`. Has no effect after it has been used. |
+| `INITIAL_INVITE_CODE` | No       | Seeded as an ADMIN invite on first boot. Defaults to `000000`. Has no effect after it has been used. |
 
 ## Project layout
 

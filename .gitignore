@@ -20,6 +20,10 @@ dist-ssr
 # Runtime data mounted by docker-compose
 data/
 
+# Local SQLite database (keep the directory via .gitkeep)
+backend/db/*
+!backend/db/.gitkeep
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
