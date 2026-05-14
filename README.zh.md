@@ -6,11 +6,11 @@
 
 ## 预览
 
-| 浅色 | 深色 |
-| ---- | ---- |
-| ![仪表盘 — 浅色](./captures/Screenshot%202026-05-14%20at%2001.21.39.png) | ![仪表盘 — 深色](./captures/Screenshot%202026-05-14%20at%2001.21.18.png) |
-
-![邀请码管理](./captures/Screenshot%202026-05-14%20at%2001.22.00.png)
+![Dark Theme](./captures/dark_theme.png)  
+![Light Theme](./captures/light_theme.png)  
+![Invite Code](./captures/invite_code.png)  
+![Quick Notes](./captures/quick_notes.png)  
+![Keepscreenon](./captures/keepscreenon.png)  
 
 ## 功能特性
 

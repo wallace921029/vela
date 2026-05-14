@@ -6,11 +6,11 @@ A self-hosted personal navigation dashboard. Organize your bookmarks into dragga
 
 ## Preview
 
-| Light | Dark |
-| ----- | ---- |
-| ![Dashboard — light](./captures/Screenshot%202026-05-14%20at%2001.21.39.png) | ![Dashboard — dark](./captures/Screenshot%202026-05-14%20at%2001.21.18.png) |
-
-![Invite code management](./captures/Screenshot%202026-05-14%20at%2001.22.00.png)
+![Dark Theme](./captures/dark_theme.png)  
+![Light Theme](./captures/light_theme.png)  
+![Invite Code](./captures/invite_code.png)  
+![Quick Notes](./captures/quick_notes.png)  
+![Keepscreenon](./captures/keepscreenon.png)  
 
 ## Features
 
