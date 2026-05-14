@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getFirstValidationError } from '@/utils/validation';
 import { getAccountErrorMessage } from './accountErrorMessages';
+import request from '@/utils/request';
 
 interface PasswordFormProps {
   token: string | null;
@@ -45,30 +46,17 @@ const PasswordForm = ({ token }: PasswordFormProps) => {
     setIsSaving(true);
 
     try {
-      const response = await fetch('/api/auth/password', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          currentPassword: result.data.currentPassword,
-          newPassword: result.data.newPassword,
-        }),
+      await request.patch('/api/auth/password', {
+        currentPassword: result.data.currentPassword,
+        newPassword: result.data.newPassword,
       });
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(getAccountErrorMessage(data.error, 'account.errors.passwordFailed', t));
-        return;
-      }
 
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setMessage(t('account.messages.passwordUpdated'));
-    } catch {
-      setError(t('account.errors.passwordFailed'));
+    } catch (err: any) {
+      setError(getAccountErrorMessage(err.response?.data?.error, 'account.errors.passwordFailed', t));
     } finally {
       setIsSaving(false);
     }

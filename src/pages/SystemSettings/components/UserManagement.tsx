@@ -43,6 +43,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import TablePagination from './TablePagination';
 import type { AdminUser, PaginatedResponse } from './types';
 import { getFirstValidationError } from '@/utils/validation';
+import request from '@/utils/request';
 
 interface UserManagementProps {
   token: string | null;
@@ -74,14 +75,10 @@ const UserManagement = ({ token }: UserManagementProps) => {
         page: String(nextPage),
         pageSize: String(PAGE_SIZE),
       });
-      const response = await fetch(`/api/admin/users?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json() as PaginatedResponse<AdminUser> | { error?: string };
+      const response = await request.get(`/api/admin/users?${params.toString()}`);
+      const data = response.data as PaginatedResponse<AdminUser> | { error?: string };
 
-      if (!response.ok || !('items' in data)) {
+      if (!('items' in data)) {
         setError(t('system.errors.loadUsers'));
         return;
       }
@@ -116,25 +113,13 @@ const UserManagement = ({ token }: UserManagementProps) => {
     setIsSaving(true);
 
     try {
-      const response = await fetch(`/api/admin/users/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || t('system.errors.updateUser'));
-        return null;
-      }
+      const response = await request.patch(`/api/admin/users/${id}`, body);
+      const data = response.data;
 
       setUsers((current) => current.map((adminUser) => adminUser.id === id ? data : adminUser));
       return data as AdminUser;
-    } catch {
-      setError(t('system.errors.updateUser'));
+    } catch (err: any) {
+      setError(err.response?.data?.error || t('system.errors.updateUser'));
       return null;
     } finally {
       setIsSaving(false);
@@ -182,18 +167,8 @@ const UserManagement = ({ token }: UserManagementProps) => {
     setIsSaving(true);
 
     try {
-      const response = await fetch(`/api/admin/users/${deleteTarget.id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || t('system.errors.deleteUser'));
-        return;
-      }
+      const response = await request.delete(`/api/admin/users/${deleteTarget.id}`);
+      const data = response.data;
 
       setDeleteTarget(null);
       if (users.length === 1 && page > 1) {
@@ -201,8 +176,8 @@ const UserManagement = ({ token }: UserManagementProps) => {
       } else {
         await loadUsers(page);
       }
-    } catch {
-      setError(t('system.errors.deleteUser'));
+    } catch (err: any) {
+      setError(err.response?.data?.error || t('system.errors.deleteUser'));
     } finally {
       setIsSaving(false);
     }

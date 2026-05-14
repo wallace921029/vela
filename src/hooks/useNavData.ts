@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import type { NavGroup, NavItem } from '@/types';
+import request from '@/utils/request';
 
 export const useNavData = () => {
   const [groups, setGroups] = useState<NavGroup[]>([]);
@@ -15,21 +16,17 @@ export const useNavData = () => {
           return;
         }
 
-        const response = await fetch('/api/nav', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setGroups(Array.isArray(data) ? data : []);
-        } else if (response.status === 401) {
+        const response = await request.get('/api/nav');
+        setGroups(Array.isArray(response.data) ? response.data : []);
+      } catch (error: any) {
+        if (error.response?.status === 401) {
           // Token might be expired
           localStorage.removeItem('vela_token');
           localStorage.removeItem('vela_user');
           window.location.href = '/login';
+        } else {
+          console.error('Failed to fetch nav data:', error);
         }
-      } catch (error) {
-        console.error('Failed to fetch nav data:', error);
       } finally {
         setIsLoaded(true);
       }
@@ -45,14 +42,7 @@ export const useNavData = () => {
       const token = localStorage.getItem('vela_token');
       if (!token) return;
 
-      await fetch('/api/nav', {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(newGroups)
-      });
+      await request.put('/api/nav', newGroups);
     } catch (e) {
       console.error('Failed to save nav data:', e);
     }

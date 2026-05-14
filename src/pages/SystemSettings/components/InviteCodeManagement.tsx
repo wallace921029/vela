@@ -45,6 +45,7 @@ import {
 import TablePagination from './TablePagination';
 import type { InviteCode, PaginatedResponse } from './types';
 import { getFirstValidationError } from '@/utils/validation';
+import request from '@/utils/request';
 
 interface InviteCodeManagementProps {
   token: string | null;
@@ -83,14 +84,10 @@ const InviteCodeManagement = ({ token }: InviteCodeManagementProps) => {
         page: String(nextPage),
         pageSize: String(PAGE_SIZE),
       });
-      const response = await fetch(`/api/admin/invites?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json() as PaginatedResponse<InviteCode> | { error?: string };
+      const response = await request.get(`/api/admin/invites?${params.toString()}`);
+      const data = response.data as PaginatedResponse<InviteCode> | { error?: string };
 
-      if (!response.ok || !('items' in data)) {
+      if (!('items' in data)) {
         setError(t('system.errors.loadInvites'));
         return;
       }
@@ -128,19 +125,7 @@ const InviteCodeManagement = ({ token }: InviteCodeManagementProps) => {
     setMessage('');
 
     try {
-      const response = await fetch('/api/admin/invites', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(result.data),
-      });
-
-      if (!response.ok) {
-        setError(t('system.errors.createInvite'));
-        return;
-      }
+      await request.post('/api/admin/invites', result.data);
 
       await loadInvites(page);
       setIsCreateOpen(false);
@@ -163,17 +148,7 @@ const InviteCodeManagement = ({ token }: InviteCodeManagementProps) => {
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`/api/admin/invites/${encodeURIComponent(deleteTarget.code)}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        setError(t('system.errors.deleteInvite'));
-        return;
-      }
+      await request.delete(`/api/admin/invites/${encodeURIComponent(deleteTarget.code)}`);
 
       setDeleteTarget(null);
       if (invites.length === 1 && page > 1) {
@@ -198,19 +173,7 @@ const InviteCodeManagement = ({ token }: InviteCodeManagementProps) => {
     setIsDeleting(true);
 
     try {
-      const response = await fetch('/api/admin/invites/delete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ codes: selectedCodes }),
-      });
-
-      if (!response.ok) {
-        setError(t('system.errors.deleteInvite'));
-        return;
-      }
+      await request.post('/api/admin/invites/delete', { codes: selectedCodes });
 
       setIsBulkDeleteOpen(false);
       setSelectedCodes([]);

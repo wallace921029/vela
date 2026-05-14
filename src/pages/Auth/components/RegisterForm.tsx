@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getFirstValidationError } from "@/utils/validation";
 import AuthPageShell from "./AuthPageShell";
+import request from "@/utils/request";
 
 const RegisterForm = () => {
   const navigate = useNavigate();
@@ -50,25 +51,16 @@ const RegisterForm = () => {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: result.data.email,
-          password: result.data.password,
-          inviteCode: result.data.inviteCode,
-          nickname: result.data.nickname || "",
-        }),
+      await request.post("/api/auth/register", {
+        email: result.data.email,
+        password: result.data.password,
+        inviteCode: result.data.inviteCode,
+        nickname: result.data.nickname || "",
       });
-      const data = await res.json();
 
-      if (res.ok) {
-        navigate("/login");
-      } else {
-        setError(data.error || "Registration failed");
-      }
-    } catch {
-      setError("An error occurred. Please try again.");
+      navigate("/login");
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Registration failed");
     } finally {
       setIsLoading(false);
     }

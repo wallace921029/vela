@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { User as AuthUser } from '@/contexts/AuthContext';
 import { getFirstValidationError } from '@/utils/validation';
 import { getAccountErrorMessage } from './accountErrorMessages';
+import request from '@/utils/request';
 
 interface ProfileFormProps {
   token: string | null;
@@ -60,25 +61,13 @@ const ProfileForm = ({ token, user, onUserUpdate }: ProfileFormProps) => {
     setIsSaving(true);
 
     try {
-      const response = await fetch('/api/auth/profile', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(result.data),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(getAccountErrorMessage(data.error, 'account.errors.profileFailed', t));
-        return;
-      }
+      const response = await request.patch('/api/auth/profile', result.data);
+      const data = response.data;
 
       onUserUpdate(data);
       setMessage(t('account.messages.profileUpdated'));
-    } catch {
-      setError(t('account.errors.profileFailed'));
+    } catch (err: any) {
+      setError(getAccountErrorMessage(err.response?.data?.error, 'account.errors.profileFailed', t));
     } finally {
       setIsSaving(false);
     }

@@ -9,10 +9,12 @@ export interface LocationData {
   longitude: number;
 }
 
+import axios from 'axios';
+
 export const fetchWeather = async (lat: number, lon: number): Promise<WeatherData | null> => {
   try {
-    const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
-    const data = await response.json();
+    const response = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
+    const data = response.data;
     if (data.current) {
       return {
         temperature: data.current.temperature_2m,
@@ -29,8 +31,8 @@ export const fetchWeather = async (lat: number, lon: number): Promise<WeatherDat
 export const searchLocation = async (name: string, language: string = 'en'): Promise<LocationData | null> => {
   try {
     // Open-Meteo Geocoding API
-    const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=${language}`);
-    const data = await response.json();
+    const response = await axios.get(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=${language}`);
+    const data = response.data;
     if (data.results && data.results.length > 0) {
       const result = data.results[0];
       return {
@@ -51,8 +53,8 @@ export const reverseGeocode = async (lat: number, lon: number, language: string 
     // OpenStreetMap Nominatim for reverse geocoding
     // Nominatim requires a User-Agent, but in browser fetch we can't always set it easily without issues, 
     // though usually standard fetch works if not abused.
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=${language}`);
-    const data = await response.json();
+    const response = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=${language}`);
+    const data = response.data;
     
     if (data.address) {
       // Prefer city, town, village, then fallback to others

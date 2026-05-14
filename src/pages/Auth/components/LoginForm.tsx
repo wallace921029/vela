@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getFirstValidationError } from '@/utils/validation';
 import AuthPageShell from './AuthPageShell';
+import request from '@/utils/request';
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -36,22 +37,13 @@ const LoginForm = () => {
       return;
     }
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(result.data),
-      });
-      const data = await res.json();
+      const response = await request.post('/api/auth/login', result.data);
+      const data = response.data;
 
-      if (res.ok) {
-        login(data.token, data.user);
-        navigate('/');
-      } else {
-        setError(getLoginErrorMessage(data.error, t));
-      }
-    } catch {
-      setError('An error occurred. Please try again.');
+      login(data.token, data.user);
+      navigate('/');
+    } catch (err: any) {
+      setError(getLoginErrorMessage(err.response?.data?.error, t) || 'An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }

@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import TablePagination from '@/pages/SystemSettings/components/TablePagination';
+import request from '@/utils/request';
 
 interface Note {
   id: string;
@@ -60,13 +61,7 @@ type LayoutMode = 'compact' | 'comfortable';
 const PAGE_SIZE = 20;
 const LAYOUT_STORAGE_KEY = 'vela_notes_layout';
 
-const authHeaders = (extra: Record<string, string> = {}): Record<string, string> => {
-  const token = localStorage.getItem('vela_token');
-  return {
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...extra,
-  };
-};
+// authHeaders removed since request interceptor handles it
 
 const Notes = () => {
   const { t } = useTranslation();
@@ -105,12 +100,8 @@ const Notes = () => {
       try {
         const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
         if (debouncedSearch) params.set('q', debouncedSearch);
-        const res = await fetch(`/api/notes?${params.toString()}`, { headers: authHeaders() });
-        if (!res.ok || cancelled) {
-          if (!res.ok && !cancelled) toast.error(t('notes.loadFailed'));
-          return;
-        }
-        const data = (await res.json()) as ListResponse;
+        const res = await request.get(`/api/notes?${params.toString()}`);
+        const data = res.data as ListResponse;
         if (cancelled) return;
         setNotes(data.items);
         setTotal(data.total);
@@ -167,13 +158,8 @@ const Notes = () => {
     if (!editor || !isDirty) return;
     setSaveStatus('saving');
     try {
-      const res = await fetch(`/api/notes/${editor.id}`, {
-        method: 'PATCH',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ title: editor.title, content: editor.content }),
-      });
-      if (!res.ok) throw new Error('save failed');
-      const updated = (await res.json()) as Note;
+      const res = await request.patch(`/api/notes/${editor.id}`, { title: editor.title, content: editor.content });
+      const updated = res.data as Note;
       setSavedSnapshot({ id: updated.id, title: updated.title, content: updated.content });
       setEditor({ id: updated.id, title: updated.title, content: updated.content });
       setNotes((prev) => {
@@ -196,13 +182,8 @@ const Notes = () => {
 
   const handleCreate = async () => {
     try {
-      const res = await fetch('/api/notes', {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ title: '', content: '' }),
-      });
-      if (!res.ok) throw new Error('create failed');
-      const created = (await res.json()) as Note;
+      const res = await request.post('/api/notes', { title: '', content: '' });
+      const created = res.data as Note;
       setSearchInput('');
       setPage(1);
       setNotes((prev) => [created, ...prev.filter((n) => n.id !== created.id)]);
@@ -218,8 +199,7 @@ const Notes = () => {
     if (!deleteTarget) return;
     const id = deleteTarget.id;
     try {
-      const res = await fetch(`/api/notes/${id}`, { method: 'DELETE', headers: authHeaders() });
-      if (!res.ok) throw new Error('delete failed');
+      await request.delete(`/api/notes/${id}`);
       setDeleteTarget(null);
       if (selectedId === id) closeEditor();
       setNotes((prev) => prev.filter((n) => n.id !== id));

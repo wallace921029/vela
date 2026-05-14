@@ -1,5 +1,6 @@
 import type { NavGroup } from '@/types';
 import { parseBookmarksHTML } from './bookmarkParser';
+import request from './request';
 
 export type BookmarkImportResult =
   | { ok: true; groups: NavGroup[] }
@@ -27,16 +28,13 @@ export const importBookmarksFile = async (file: File, token: string | null): Pro
     return { ok: false, reason: 'empty' };
   }
 
-  const response = await fetch('/api/nav', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify(groups),
-  });
-
-  if (!response.ok) {
+  try {
+    await request.put('/api/nav', groups, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+  } catch (error) {
     return { ok: false, reason: 'save-failed' };
   }
 
