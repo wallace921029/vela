@@ -8,9 +8,9 @@
 
 ![Dark Theme](./captures/dark_theme.png)  
 ![Light Theme](./captures/light_theme.png)  
-![Invite Code](./captures/invite_code.png)  
-![Quick Notes](./captures/quick_notes.png)  
-![Keepscreenon](./captures/keepscreenon.png)  
+![Invite Code](./captures/invite_code_feature.png)  
+![Quick Note](./captures/quick_note_feature.png)  
+![Keepscreenon](./captures/keepsceenon_feature.png)  
 
 ## 功能特性
 
