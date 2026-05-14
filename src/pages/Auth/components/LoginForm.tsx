@@ -37,6 +37,7 @@ const LoginForm = () => {
       return;
     }
 
+    try {
       const response = await request.post('/api/auth/login', result.data);
       const data = response.data;
 
