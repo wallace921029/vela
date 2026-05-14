@@ -53,7 +53,7 @@ interface InviteCodeManagementProps {
 
 const PAGE_SIZE = 20;
 
-const InviteCodeManagement = ({ token }: InviteCodeManagementProps) => {
+const InviteCodeManagement = ({ token: _token }: InviteCodeManagementProps) => {
   const { t } = useTranslation();
   const [invites, setInvites] = useState<InviteCode[]>([]);
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
@@ -107,7 +107,7 @@ const InviteCodeManagement = ({ token }: InviteCodeManagementProps) => {
 
   useEffect(() => {
     loadInvites(page);
-  }, [page, token]);
+  }, [page]);
 
   const handleCreateInvite = async () => {
     const result = z.object({

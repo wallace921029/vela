@@ -51,7 +51,7 @@ interface UserManagementProps {
 
 const PAGE_SIZE = 20;
 
-const UserManagement = ({ token }: UserManagementProps) => {
+const UserManagement = ({ token: _token }: UserManagementProps) => {
   const { t, i18n } = useTranslation();
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -96,7 +96,7 @@ const UserManagement = ({ token }: UserManagementProps) => {
 
   useEffect(() => {
     loadUsers(page);
-  }, [page, token, t]);
+  }, [page, t]);
 
   const formatDate = (value: string) => new Date(value).toLocaleDateString(
     i18n.language === 'zh' ? 'zh-CN' : 'en-US',
@@ -167,8 +167,7 @@ const UserManagement = ({ token }: UserManagementProps) => {
     setIsSaving(true);
 
     try {
-      const response = await request.delete(`/api/admin/users/${deleteTarget.id}`);
-      const data = response.data;
+      await request.delete(`/api/admin/users/${deleteTarget.id}`);
 
       setDeleteTarget(null);
       if (users.length === 1 && page > 1) {

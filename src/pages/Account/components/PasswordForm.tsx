@@ -15,7 +15,7 @@ interface PasswordFormProps {
   token: string | null;
 }
 
-const PasswordForm = ({ token }: PasswordFormProps) => {
+const PasswordForm = ({ token: _token }: PasswordFormProps) => {
   const { t } = useTranslation();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');

@@ -19,7 +19,7 @@ interface ProfileFormProps {
   onUserUpdate: (user: AuthUser) => void;
 }
 
-const ProfileForm = ({ token, user, onUserUpdate }: ProfileFormProps) => {
+const ProfileForm = ({ token: _token, user, onUserUpdate }: ProfileFormProps) => {
   const { t } = useTranslation();
   const [nickname, setNickname] = useState(user.nickname || '');
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || '');
