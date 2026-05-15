@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { fetchWeather, searchLocation, reverseGeocode, getWeatherDescription } from '@/utils/weather';
 import type { WeatherData } from '@/utils/weather';
+import { toast } from 'sonner';
 
 const WEATHER_LOCATION_KEY = 'vela_weather_location';
 const WEATHER_CACHE_KEY = 'vela_weather_cache';
@@ -152,6 +153,7 @@ const TimeWeatherWidget = () => {
             setIsOpen(false);
           } catch (e) {
             console.error(e);
+            toast.error(t('weather.fetchError', 'Failed to fetch weather data'));
           } finally {
             setIsLoading(false);
           }
@@ -159,10 +161,19 @@ const TimeWeatherWidget = () => {
         (error) => {
           console.error("Error getting location:", error);
           setIsLoading(false);
-        }
+          if (error.code === 1 /* PERMISSION_DENIED */) {
+            toast.error(t('weather.locationDenied', 'Location permission denied. On macOS, please check System Settings > Privacy & Security > Location Services for your browser.'));
+          } else if (error.code === 3 /* TIMEOUT */) {
+            toast.error(t('weather.locationTimeout', 'Location request timed out.'));
+          } else {
+            toast.error(t('weather.locationError', 'Failed to get location.'));
+          }
+        },
+        { timeout: 10000, maximumAge: 60000, enableHighAccuracy: false }
       );
     } else {
       setIsLoading(false);
+      toast.error(t('weather.locationNotSupported', 'Geolocation is not supported by your browser.'));
     }
   };
 

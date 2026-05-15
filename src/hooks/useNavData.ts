@@ -16,8 +16,24 @@ export const useNavData = () => {
           return;
         }
 
+        // Try to load from cache first
+        const cachedStr = localStorage.getItem('vela_nav_cache');
+        if (cachedStr) {
+          try {
+            const cachedData = JSON.parse(cachedStr);
+            if (Array.isArray(cachedData)) {
+              setGroups(cachedData);
+              setIsLoaded(true); // Don't show loading if we have cache
+            }
+          } catch (e) {
+            console.error('Failed to parse nav cache:', e);
+          }
+        }
+
         const response = await request.get('/api/nav');
-        setGroups(Array.isArray(response.data) ? response.data : []);
+        const newData = Array.isArray(response.data) ? response.data : [];
+        setGroups(newData);
+        localStorage.setItem('vela_nav_cache', JSON.stringify(newData));
       } catch (error: any) {
         if (error.response?.status === 401) {
           // Token might be expired
@@ -37,6 +53,7 @@ export const useNavData = () => {
   const saveGroups = async (newGroups: NavGroup[]) => {
     // Optimistic UI update
     setGroups(newGroups);
+    localStorage.setItem('vela_nav_cache', JSON.stringify(newGroups));
     // Persist to SQLite backend
     try {
       const token = localStorage.getItem('vela_token');
