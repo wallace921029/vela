@@ -226,39 +226,55 @@ const TimeWeatherWidget = () => {
   const weatherDesc = weather ? getWeatherDescription(weather.weatherCode, t) : t('weather.unknown');
   const tempStr = weather ? `${Math.round(weather.temperature)}°C` : '';
 
+  const [timeSize, setTimeSize] = useState<'comfortable' | 'compact'>('comfortable');
+  const [showWeather, setShowWeather] = useState(true);
+
+  useEffect(() => {
+    const handleSettingsUpdate = () => {
+      setTimeSize((localStorage.getItem('vela_time_size') as 'comfortable' | 'compact') || 'comfortable');
+      setShowWeather(localStorage.getItem('vela_show_weather') !== 'false');
+    };
+
+    handleSettingsUpdate();
+    window.addEventListener('vela_settings_updated', handleSettingsUpdate);
+    return () => window.removeEventListener('vela_settings_updated', handleSettingsUpdate);
+  }, []);
+
   return (
     <div className="flex flex-col items-center justify-center space-y-6 pt-10 pb-8 animate-in fade-in zoom-in duration-700">
-      <div className="text-7xl md:text-8xl font-black tracking-tighter text-neutral-800 dark:text-neutral-100 drop-shadow-sm font-sans select-none">
+      <div className={`${timeSize === 'compact' ? 'text-5xl md:text-6xl' : 'text-7xl md:text-8xl'} font-black tracking-tighter text-neutral-800 dark:text-neutral-100 drop-shadow-sm font-sans select-none transition-all duration-300`}>
         {timeString}
       </div>
-      <div className="flex items-center gap-4 md:gap-6 text-neutral-500 dark:text-neutral-400 font-medium text-sm md:text-base">
-        <span>{dateString}</span>
-        <div className="w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-700"></div>
-        <button
-          type="button"
-          className="flex items-center gap-2 rounded-md outline-none transition-colors hover:text-neutral-800 focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:text-neutral-200"
-          onClick={handleWeatherRefresh}
-          title={t('weather.refreshWeather')}
-          aria-label={t('weather.refreshWeather')}
-          disabled={!weatherLocation || isWeatherRefreshing}
-        >
-          {isWeatherRefreshing ? (
-            <Loader2 className="size-5 animate-spin text-amber-500" />
-          ) : (
-            <CloudSun className="size-5 text-amber-500" />
-          )}
-          <span>{weatherDesc} {tempStr}</span>
-        </button>
-        <div className="w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-700"></div>
-        
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
-          <PopoverTrigger asChild>
-            <button className="flex items-center gap-1.5 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer outline-none">
-              <MapPin className="size-4" />
-              <span>{displayLocation}</span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-3" align="center">
+      
+      {showWeather && (
+        <div className="flex items-center gap-4 md:gap-6 text-neutral-500 dark:text-neutral-400 font-medium text-sm md:text-base transition-all duration-300 animate-in fade-in slide-in-from-top-4">
+          <span>{dateString}</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-700"></div>
+          <button
+            type="button"
+            className="flex items-center gap-2 rounded-md outline-none transition-colors hover:text-neutral-800 focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:text-neutral-200"
+            onClick={handleWeatherRefresh}
+            title={t('weather.refreshWeather')}
+            aria-label={t('weather.refreshWeather')}
+            disabled={!weatherLocation || isWeatherRefreshing}
+          >
+            {isWeatherRefreshing ? (
+              <Loader2 className="size-5 animate-spin text-amber-500" />
+            ) : (
+              <CloudSun className="size-5 text-amber-500" />
+            )}
+            <span>{weatherDesc} {tempStr}</span>
+          </button>
+          <div className="w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-700"></div>
+          
+          <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-1.5 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer outline-none">
+                <MapPin className="size-4" />
+                <span>{displayLocation}</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-3" align="center">
             <div className="space-y-3">
               <Button 
                 variant="outline" 
@@ -296,6 +312,7 @@ const TimeWeatherWidget = () => {
         </Popover>
 
       </div>
+      )}
     </div>
   );
 };

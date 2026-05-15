@@ -36,14 +36,23 @@ const SearchBar = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const result = z.object({
-      query: z.string().trim().min(1),
-    }).safeParse({ query });
-
-    if (result.success) {
-      window.open(`${currentEngine.url}${encodeURIComponent(result.data.query)}`, '_blank');
-      setQuery('');
+    
+    const target = localStorage.getItem('vela_search_target') === '_self' ? '_self' : '_blank';
+    const trimmedQuery = query.trim();
+    
+    if (!trimmedQuery) {
+      try {
+        const urlObj = new URL(currentEngine.url);
+        window.open(urlObj.origin, target);
+      } catch (err) {
+        // Fallback if URL parsing fails
+        window.open(currentEngine.url, target);
+      }
+      return;
     }
+
+    window.open(`${currentEngine.url}${encodeURIComponent(trimmedQuery)}`, target);
+    setQuery('');
   };
 
   const changeEngine = (id: string) => {

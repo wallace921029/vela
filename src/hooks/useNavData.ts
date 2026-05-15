@@ -129,6 +129,57 @@ export const useNavData = () => {
     }));
   };
 
+  const moveItem = (sourceGroupId: string, targetGroupId: string, itemId: string) => {
+    if (sourceGroupId === targetGroupId) return;
+    saveGroups(groups.map(g => {
+      if (g.id === sourceGroupId) {
+        return { ...g, items: g.items.filter(i => i.id !== itemId) };
+      }
+      if (g.id === targetGroupId) {
+        const itemToMove = groups.find(src => src.id === sourceGroupId)?.items.find(i => i.id === itemId);
+        return itemToMove ? { ...g, items: [...g.items, itemToMove] } : g;
+      }
+      return g;
+    }));
+  };
+
+  const moveItems = (itemsToMove: { groupId: string, itemId: string }[], targetGroupId: string) => {
+    let newGroups = [...groups];
+    const itemsData = itemsToMove.map(loc => {
+      const g = groups.find(g => g.id === loc.groupId);
+      return g?.items.find(i => i.id === loc.itemId);
+    }).filter(Boolean) as NavItem[];
+
+    if (itemsData.length === 0) return;
+
+    newGroups = newGroups.map(g => {
+      const itemsToRemove = itemsToMove.filter(loc => loc.groupId === g.id).map(loc => loc.itemId);
+      if (itemsToRemove.length > 0) {
+        return { ...g, items: g.items.filter(i => !itemsToRemove.includes(i.id)) };
+      }
+      return g;
+    });
+
+    newGroups = newGroups.map(g => {
+      if (g.id === targetGroupId) {
+        return { ...g, items: [...g.items, ...itemsData] };
+      }
+      return g;
+    });
+
+    saveGroups(newGroups);
+  };
+
+  const deleteItems = (itemsToDelete: { groupId: string, itemId: string }[]) => {
+    saveGroups(groups.map(g => {
+      const itemsToRemove = itemsToDelete.filter(loc => loc.groupId === g.id).map(loc => loc.itemId);
+      if (itemsToRemove.length > 0) {
+        return { ...g, items: g.items.filter(i => !itemsToRemove.includes(i.id)) };
+      }
+      return g;
+    }));
+  };
+
   return {
     groups,
     isLoaded,
@@ -144,6 +195,9 @@ export const useNavData = () => {
     reorderAllItems,
     sortGroups,
     sortItems,
+    moveItem,
+    moveItems,
+    deleteItems,
     setGroups: saveGroups
   };
 };

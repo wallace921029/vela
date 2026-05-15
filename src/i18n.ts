@@ -279,7 +279,25 @@ const resources = {
         "itemIconPlaceholder": "图标图片地址，留空将自动获取网站图标",
         "iconHint": "提示: 保存时将自动获取该网站图标。",
         "itemDesc": "简介 (可选)",
-        "itemDescPlaceholder": "简短描述..."
+        "itemDescPlaceholder": "简短描述...",
+        "moveTo": "移动到",
+        "batchMode": "批量操作",
+        "batchDelete": "批量删除",
+        "selectTargetGroup": "选择目标分组",
+        "selectGroupPlaceholder": "请选择分组",
+        "confirm": "确认",
+        "confirmBatchDeleteTitle": "批量删除导航？",
+        "confirmBatchDeleteDesc": "将删除选中的 {{count}} 个导航。此操作无法撤销。",
+        "more": "更多",
+        "customSortGroups": "分组排序",
+        "customSort": "自定义排序"
+      },
+      "dashboard": {
+        "settings": "页面设置",
+        "timeComfortable": "舒适时间显示",
+        "showWeather": "显示天气日期",
+        "searchNewTab": "搜索新标签打开",
+        "navNewTab": "书签新标签打开"
       },
       "defaultData": {
         "groupTitle": "导航",
@@ -567,7 +585,25 @@ const resources = {
         "itemIconPlaceholder": "Leave blank to auto-fetch icon",
         "iconHint": "Hint: Icon will be automatically fetched on save.",
         "itemDesc": "Description (Optional)",
-        "itemDescPlaceholder": "Short description..."
+        "itemDescPlaceholder": "Short description...",
+        "moveTo": "Move to",
+        "batchMode": "Batch actions",
+        "batchDelete": "Batch delete",
+        "selectTargetGroup": "Select target group",
+        "selectGroupPlaceholder": "Select a group",
+        "confirm": "Confirm",
+        "confirmBatchDeleteTitle": "Delete selected links?",
+        "confirmBatchDeleteDesc": "Delete {{count}} selected links? This action cannot be undone.",
+        "more": "More actions",
+        "customSortGroups": "Sort groups",
+        "customSort": "Custom sort"
+      },
+      "dashboard": {
+        "settings": "Dashboard Settings",
+        "timeComfortable": "Comfortable time size",
+        "showWeather": "Show weather and date",
+        "searchNewTab": "Open search in new tab",
+        "navNewTab": "Open links in new tab"
       },
       "defaultData": {
         "groupTitle": "Navigation",

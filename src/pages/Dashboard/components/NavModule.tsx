@@ -15,7 +15,10 @@ import {
   ListOrdered,
   LayoutGrid,
   Search,
-  X
+  X,
+  CheckSquare,
+  FolderOutput,
+  MoreHorizontal
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,6 +68,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { arrayMove } from '@dnd-kit/sortable';
 
 import { FaviconImage } from './FaviconImage';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Sortable Dialog Item
 const SortableGridItem = ({ id, index, name }: { id: string, index: number, name: string }) => {
@@ -138,7 +143,7 @@ const SortDialog = ({ open, onOpenChange, title, items, onSave }: {
         </div>
         <DialogFooter>
           <Button onClick={handleSave} className="w-full sm:w-auto px-8">
-            {t('nav.save', { defaultValue: '完成' })}
+            {t('nav.save')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -150,7 +155,8 @@ const SortDialog = ({ open, onOpenChange, title, items, onSave }: {
 type CardSize = 'small' | 'medium' | 'large';
 type DeleteTarget =
   | { type: 'group'; groupId: string; title: string; itemCount: number }
-  | { type: 'item'; groupId: string; itemId: string; title: string };
+  | { type: 'item'; groupId: string; itemId: string; title: string }
+  | { type: 'batch'; count: number };
 
 const CARD_SIZE_STYLES: Record<CardSize, { card: string; icon: string; title: string; desc: string; gap: string }> = {
   small: { card: 'h-[52px] p-2 rounded-lg', icon: 'w-6 h-6 rounded-md', title: 'text-xs', desc: 'text-[9px]', gap: 'gap-2' },
@@ -170,31 +176,68 @@ const ItemCard = ({
   groupId, 
   onEdit, 
   onDelete,
-  cardSize = 'medium'
+  onMove,
+  cardSize = 'medium',
+  isBatchMode = false,
+  isSelected = false,
+  onToggleSelect
 }: { 
   item: NavItem; 
   groupId: string; 
   onEdit: (groupId: string, item: NavItem) => void; 
   onDelete: (groupId: string, itemId: string) => void;
+  onMove: (groupId: string, item: NavItem) => void;
   cardSize?: CardSize;
+  isBatchMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (groupId: string, itemId: string) => void;
 }) => {
   const { t } = useTranslation();
   const s = CARD_SIZE_STYLES[cardSize];
+  const [navTarget, setNavTarget] = useState<'_blank' | '_self'>('_blank');
+
+  useEffect(() => {
+    const handleSettingsUpdate = () => {
+      setNavTarget((localStorage.getItem('vela_nav_target') as '_blank' | '_self') || '_blank');
+    };
+    handleSettingsUpdate();
+    window.addEventListener('vela_settings_updated', handleSettingsUpdate);
+    return () => window.removeEventListener('vela_settings_updated', handleSettingsUpdate);
+  }, []);
 
   return (
     <div 
-      className={`group relative flex items-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:shadow-lg hover:border-primary/40 transition-all duration-300 hover:-translate-y-0.5 ${s.card}`}
+      className={`group relative flex items-center bg-white dark:bg-neutral-900 border transition-all duration-300 ${isSelected ? 'ring-2 ring-primary border-transparent' : 'border-neutral-200 dark:border-neutral-800 hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5'} ${s.card}`}
     >
+      {isBatchMode && (
+        <div 
+          className="absolute top-2 left-2 z-10" 
+          onClick={(e) => { 
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleSelect?.(groupId, item.id);
+          }}
+        >
+          <Checkbox checked={isSelected} className="bg-white/80 dark:bg-neutral-900/80 data-[state=checked]:bg-primary" />
+        </div>
+      )}
+
       <a 
         href={item.url} 
-        target="_blank" 
+        target={navTarget}
         rel="noreferrer"
-        className={`flex items-center flex-1 outline-none min-w-0 ${s.gap}`}
+        onClick={(e) => {
+          if (isBatchMode) {
+            e.preventDefault();
+            onToggleSelect?.(groupId, item.id);
+          }
+        }}
+        className={`flex items-center flex-1 outline-none min-w-0 ${s.gap} ${isBatchMode ? 'cursor-pointer pl-6' : ''}`}
       >
         <div className={`shrink-0 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center overflow-hidden border border-neutral-200 dark:border-neutral-700 shadow-sm ${s.icon}`}>
           <FaviconImage src={item.icon || ''} title={item.title} url={item.url} />
         </div>
-        <div className="flex-1 min-w-0 cursor-pointer">
+        <div className="flex-1 min-w-0">
           <h4 className={`font-semibold text-neutral-900 dark:text-neutral-100 truncate group-hover:text-primary transition-colors ${s.title}`}>
             {item.title}
           </h4>
@@ -204,26 +247,31 @@ const ItemCard = ({
         </div>
       </a>
 
-      <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-6 w-6 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm shadow-sm hover:bg-neutral-100 dark:hover:bg-neutral-800">
-              <MoreVertical className="size-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(groupId, item); }}>
-              <Pencil className="mr-2 size-4" /> {t('nav.edit')}
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-destructive focus:text-destructive"
-              onClick={(e) => { e.stopPropagation(); onDelete(groupId, item.id); }}
-            >
-              <Trash2 className="mr-2 size-4" /> {t('nav.delete')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {!isBatchMode && (
+        <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm shadow-sm hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                <MoreVertical className="size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(groupId, item); }}>
+                <FolderOutput className="mr-2 size-4" /> {t('nav.moveTo')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(groupId, item); }}>
+                <Pencil className="mr-2 size-4" /> {t('nav.edit')}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive"
+                onClick={(e) => { e.stopPropagation(); onDelete(groupId, item.id); }}
+              >
+                <Trash2 className="mr-2 size-4" /> {t('nav.delete')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   );
 };
@@ -236,9 +284,13 @@ const GroupBlock = ({
   onOpenItemDialog, 
   onEditItem, 
   onDeleteItem,
+  onMoveItem,
   onSortItems,
   onOpenCustomSort,
-  cardSize = 'medium'
+  cardSize = 'medium',
+  isBatchMode = false,
+  selectedItems = [],
+  onToggleSelect
 }: { 
   group: NavGroup; 
   onEditGroup: (g: NavGroup) => void; 
@@ -246,9 +298,13 @@ const GroupBlock = ({
   onOpenItemDialog: (id: string) => void;
   onEditItem: (groupId: string, item: NavItem) => void;
   onDeleteItem: (groupId: string, itemId: string) => void;
+  onMoveItem: (groupId: string, item: NavItem) => void;
   onSortItems: (groupId: string, direction: 'asc' | 'desc') => void;
   onOpenCustomSort: (groupId: string) => void;
   cardSize?: CardSize;
+  isBatchMode?: boolean;
+  selectedItems?: {groupId: string, itemId: string}[];
+  onToggleSelect?: (groupId: string, itemId: string) => void;
 }) => {
   const { t } = useTranslation();
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -272,7 +328,7 @@ const GroupBlock = ({
         </div>
         
         <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity ml-4">
-          <Button variant="ghost" size="icon" onClick={() => onOpenItemDialog(group.id)} className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10" title={t('nav.addNav', { defaultValue: '添加卡片' })}>
+          <Button variant="ghost" size="icon" onClick={() => onOpenItemDialog(group.id)} className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10" title={t('nav.addNav')}>
             <Plus className="size-4" />
           </Button>
 
@@ -280,7 +336,7 @@ const GroupBlock = ({
             {sortDir === 'asc' ? <ArrowDownAZ className="size-4" /> : <ArrowUpZA className="size-4" />}
           </Button>
 
-          <Button variant="ghost" size="icon" onClick={() => onOpenCustomSort(group.id)} className="h-8 w-8 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100" title={t('nav.customSort', { defaultValue: '自定义排序' })}>
+          <Button variant="ghost" size="icon" onClick={() => onOpenCustomSort(group.id)} className="h-8 w-8 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100" title={t('nav.customSort')}>
             <ListOrdered className="size-4" />
           </Button>
 
@@ -302,7 +358,11 @@ const GroupBlock = ({
             groupId={group.id} 
             onEdit={onEditItem} 
             onDelete={onDeleteItem}
+            onMove={onMoveItem}
             cardSize={cardSize}
+            isBatchMode={isBatchMode}
+            isSelected={selectedItems.some(s => s.groupId === group.id && s.itemId === item.id)}
+            onToggleSelect={onToggleSelect}
           />
         ))}
       </div>
@@ -325,7 +385,10 @@ const NavModule = () => {
     reorderAllGroups,
     reorderAllItems,
     sortGroups,
-    sortItems
+    sortItems,
+    moveItem,
+    moveItems,
+    deleteItems
   } = useNavData();
 
   const [groupSortDir, setGroupSortDir] = useState<'asc' | 'desc'>('asc');
@@ -351,6 +414,16 @@ const NavModule = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+
+  // Batch state
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<{groupId: string, itemId: string}[]>([]);
+  const [showMoreOps, setShowMoreOps] = useState(false);
+
+  // Move state
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveTarget, setMoveTarget] = useState<{groupId: string, itemId: string} | null>(null);
+  const [selectedTargetGroup, setSelectedTargetGroup] = useState<string>('');
 
   if (!isLoaded) {
     return <div className="flex justify-center py-20 text-neutral-400">Loading...</div>;
@@ -431,13 +504,53 @@ const NavModule = () => {
     setDeleteTarget({ type: 'item', groupId, itemId, title: item.title });
   };
 
+  const handleToggleSelect = (groupId: string, itemId: string) => {
+    setSelectedItems(prev => {
+      const exists = prev.some(s => s.groupId === groupId && s.itemId === itemId);
+      if (exists) {
+        return prev.filter(s => !(s.groupId === groupId && s.itemId === itemId));
+      }
+      return [...prev, {groupId, itemId}];
+    });
+  };
+
+  const handleOpenMoveDialog = (groupId?: string, item?: NavItem) => {
+    if (groupId && item) {
+      setMoveTarget({groupId, itemId: item.id});
+    } else {
+      setMoveTarget(null); // batch
+    }
+    setSelectedTargetGroup('');
+    setMoveDialogOpen(true);
+  };
+
+  const handleConfirmMove = () => {
+    if (!selectedTargetGroup) return;
+    if (moveTarget) {
+      moveItem(moveTarget.groupId, selectedTargetGroup, moveTarget.itemId);
+    } else {
+      moveItems(selectedItems, selectedTargetGroup);
+      setSelectedItems([]);
+      setIsBatchMode(false);
+    }
+    setMoveDialogOpen(false);
+  };
+
+  const handleRequestBatchDelete = () => {
+    setDeleteTarget({ type: 'batch', count: selectedItems.length });
+  };
+
   const handleConfirmDelete = () => {
     if (!deleteTarget) return;
 
     if (deleteTarget.type === 'group') {
       deleteGroup(deleteTarget.groupId);
-    } else {
+    } else if (deleteTarget.type === 'item') {
       deleteItem(deleteTarget.groupId, deleteTarget.itemId);
+    } else if (deleteTarget.type === 'batch') {
+      deleteItems(selectedItems);
+      setSelectedItems([]);
+      setIsBatchMode(false);
     }
 
     setDeleteTarget(null);
@@ -478,43 +591,73 @@ const NavModule = () => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300 fill-mode-both">
       {/* Global Operations Bar */}
       <div className="flex justify-center items-center gap-2 px-2">
-        {/* Search */}
-        {searchOpen ? (
-            <div className="relative flex items-center">
-              <Search className="absolute left-3 size-4 text-neutral-400 pointer-events-none" />
-              <Input
-                autoFocus
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('nav.searchPlaceholder', { defaultValue: '搜索导航...' })}
-                className="h-9 pl-9 pr-9 w-56 rounded-full border-neutral-300 dark:border-neutral-700 shadow-sm text-sm"
-              />
-              <button
-                onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
-                className="absolute right-2.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-          ) : (
-            <Button variant="outline" size="icon" onClick={() => setSearchOpen(true)} className="rounded-full shadow-sm" title={t('nav.searchPlaceholder', { defaultValue: '搜索导航' })}>
-              <Search className="size-4" />
-            </Button>
+        {/* Search (always expanded, per requirements) */}
+        <div className="relative flex items-center">
+          <Search className="absolute left-2.5 size-3.5 text-neutral-400 pointer-events-none" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('nav.searchPlaceholder')}
+            className="h-8 pl-8 pr-8 w-48 rounded-full border-neutral-300 dark:border-neutral-700 shadow-sm text-xs"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+            >
+              <X className="size-3.5" />
+            </button>
           )}
+        </div>
+        
+        {/* New Group */}
+        <Button variant="outline" size="icon" onClick={() => handleOpenGroupDialog()} className="h-8 w-8 rounded-full shadow-sm shrink-0" title={t('nav.newGroup')}>
+          <FolderPlus className="size-3.5" />
+        </Button>
 
-          <Button variant="outline" size="icon" onClick={handleToggleGlobalSort} className="rounded-full shadow-sm" title="A-Z / Z-A">
-            {groupSortDir === 'asc' ? <ArrowDownAZ className="size-4" /> : <ArrowUpZA className="size-4" />}
+        {/* More actions with slide animation */}
+        <div className="relative flex items-center">
+          <Button variant="outline" size="icon" onClick={() => setShowMoreOps(!showMoreOps)} className={`h-8 w-8 rounded-full shadow-sm shrink-0 z-20 relative transition-colors duration-200 ${showMoreOps ? 'bg-neutral-100 dark:bg-neutral-800' : ''}`} title={t('nav.more')}>
+            <MoreHorizontal className="size-3.5" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setCustomSortGroupOpen(true)} className="rounded-full shadow-sm" title={t('nav.customSortGroups', { defaultValue: '分组排序' })}>
-            <ListOrdered className="size-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={handleToggleCardSize} className="rounded-full shadow-sm relative" title={`Card Size: ${cardSizeLabel[cardSize]}`}>
-            <LayoutGrid className="size-4" />
-            <span className="absolute -bottom-0.5 -right-0.5 text-[9px] font-bold bg-primary text-primary-foreground rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">{cardSizeLabel[cardSize]}</span>
-          </Button>
-          <Button variant="outline" size="icon" onClick={() => handleOpenGroupDialog()} className="rounded-full shadow-sm" title={t('nav.newGroup')}>
-            <FolderPlus className="size-4" />
-          </Button>
+
+          <div className={`absolute left-full top-0 h-full flex items-center gap-2 overflow-hidden transition-all duration-300 ease-out origin-left z-10 ${showMoreOps ? 'max-w-[600px] opacity-100 pl-2' : 'max-w-0 opacity-0 pointer-events-none'}`}>
+            <Button variant="outline" size="icon" onClick={handleToggleCardSize} className="h-8 w-8 rounded-full shadow-sm relative shrink-0" title={`Card Size: ${cardSizeLabel[cardSize]}`}>
+              <LayoutGrid className="size-3.5" />
+              <span className="absolute -bottom-0.5 -right-0.5 text-[8px] font-bold bg-primary text-primary-foreground rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">{cardSizeLabel[cardSize]}</span>
+            </Button>
+
+            <Button variant="outline" size="icon" onClick={handleToggleGlobalSort} className="h-8 w-8 rounded-full shadow-sm shrink-0" title="A-Z / Z-A">
+              {groupSortDir === 'asc' ? <ArrowDownAZ className="size-3.5" /> : <ArrowUpZA className="size-3.5" />}
+            </Button>
+
+            <Button variant="outline" size="icon" onClick={() => setCustomSortGroupOpen(true)} className="h-8 w-8 rounded-full shadow-sm shrink-0" title={t('nav.customSortGroups')}>
+              <ListOrdered className="size-3.5" />
+            </Button>
+
+            {/* Toggle Batch Mode */}
+            <Button variant={isBatchMode ? 'default' : 'outline'} size="icon" onClick={() => {
+              setIsBatchMode(!isBatchMode);
+              if (isBatchMode) setSelectedItems([]); // clear on exit
+            }} className="h-8 w-8 rounded-full shadow-sm shrink-0" title={t('nav.batchMode')}>
+              <CheckSquare className="size-3.5" />
+            </Button>
+
+            {/* Batch Actions when isBatchMode && selectedItems > 0 */}
+            {isBatchMode && selectedItems.length > 0 && (
+              <div className="flex items-center gap-2 animate-in slide-in-from-left-2 fade-in duration-200 border-l pl-2 ml-1 border-neutral-200 dark:border-neutral-800">
+                <Button variant="outline" size="sm" onClick={() => handleOpenMoveDialog()} className="rounded-full shadow-sm h-8 text-xs px-3 shrink-0">
+                  <FolderOutput className="size-3.5 mr-1.5" />
+                  {t('nav.moveTo')}
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => handleRequestBatchDelete()} className="rounded-full shadow-sm h-8 text-xs px-3 shrink-0">
+                  <Trash2 className="size-3.5 mr-1.5" />
+                  {t('nav.batchDelete')}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Content with optional sidebar index */}
@@ -547,9 +690,13 @@ const NavModule = () => {
               onOpenItemDialog={handleOpenItemDialog}
               onEditItem={handleOpenItemDialog}
               onDeleteItem={handleRequestDeleteItem}
+              onMoveItem={handleOpenMoveDialog}
               onSortItems={sortItems}
               onOpenCustomSort={setCustomSortItemOpenFor}
               cardSize={cardSize}
+              isBatchMode={isBatchMode}
+              selectedItems={selectedItems}
+              onToggleSelect={handleToggleSelect}
             />
           ))}
         </div>
@@ -644,25 +791,57 @@ const NavModule = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Move Dialog */}
+      <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{t('nav.selectTargetGroup')}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Select value={selectedTargetGroup} onValueChange={setSelectedTargetGroup}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('nav.selectGroupPlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                {groups.map(g => (
+                  <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>{t('nav.cancel')}</Button>
+            <Button onClick={handleConfirmMove} disabled={!selectedTargetGroup}>{t('nav.confirm')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
               {deleteTarget?.type === 'group'
-                ? t('nav.confirmDeleteGroupTitle', { defaultValue: '删除分组？' })
-                : t('nav.confirmDeleteItemTitle', { defaultValue: '删除导航？' })}
+                ? t('nav.confirmDeleteGroupTitle')
+                : deleteTarget?.type === 'item' 
+                  ? t('nav.confirmDeleteItemTitle')
+                  : t('nav.confirmBatchDeleteTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget?.type === 'group'
                 ? t('nav.confirmDeleteGroupDesc', {
-                    defaultValue: `将删除“${deleteTarget.title}”及其中 ${deleteTarget.itemCount} 个导航。此操作无法撤销。`,
+                    
                     title: deleteTarget.title,
                     count: deleteTarget.itemCount,
                   })
-                : t('nav.confirmDeleteItemDesc', {
-                    defaultValue: `将删除“${deleteTarget?.title ?? ''}”。此操作无法撤销。`,
-                    title: deleteTarget?.title,
-                  })}
+                : deleteTarget?.type === 'item'
+                  ? t('nav.confirmDeleteItemDesc', {
+                      
+                      title: deleteTarget?.title,
+                    })
+                  : t('nav.confirmBatchDeleteDesc', {
+                      
+                      count: deleteTarget?.count,
+                    })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -677,7 +856,7 @@ const NavModule = () => {
       <SortDialog 
         open={customSortGroupOpen} 
         onOpenChange={setCustomSortGroupOpen}
-        title={t('nav.customSortGroups', { defaultValue: '自定义分组排序' })}
+        title={t('nav.customSortGroups')}
         items={groups.map(g => ({ id: g.id, name: g.title }))}
         onSave={reorderAllGroups}
       />
@@ -686,7 +865,7 @@ const NavModule = () => {
         <SortDialog 
           open={!!customSortItemOpenFor} 
           onOpenChange={(open) => !open && setCustomSortItemOpenFor(null)}
-          title={`${currentSortItemGroup.title} - ${t('nav.customSort', { defaultValue: '排序' })}`}
+          title={`${currentSortItemGroup.title} - ${t('nav.customSort')}`}
           items={currentSortItemGroup.items.map(i => ({ id: i.id, name: i.title }))}
           onSave={(orderedIds) => reorderAllItems(currentSortItemGroup.id, orderedIds)}
         />
