@@ -316,7 +316,7 @@ const GroupBlock = ({
   };
 
   return (
-    <div id={`group-${group.id}`} className="space-y-4 rounded-2xl scroll-mt-24">
+    <div id={`group-${group.id}`} className="space-y-4 rounded-2xl scroll-mt-24" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 500px' }}>
       <div className="flex items-center group/header">
         <div className="flex items-center gap-2">
           <h3 className="font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-2 text-lg">

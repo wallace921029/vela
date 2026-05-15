@@ -9,12 +9,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { FaviconImage } from './FaviconImage';
+import GoogleIcon from '@/assets/google.svg';
+import BingIcon from '@/assets/bing.svg';
+import BaiduIcon from '@/assets/baidu.svg';
 
 const ENGINES = [
-  { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=' },
-  { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q=' },
-  { id: 'baidu', name: 'Baidu', url: 'https://www.baidu.com/s?wd=' },
+  { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=', icon: GoogleIcon },
+  { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q=', icon: BingIcon },
+  { id: 'baidu', name: 'Baidu', url: 'https://www.baidu.com/s?wd=', icon: BaiduIcon },
 ];
 
 const STORAGE_KEY = 'vela_search_engine';
@@ -71,8 +73,8 @@ const SearchBar = () => {
               className="absolute left-2 z-10 flex items-center gap-1.5 h-12 px-3 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 hover:text-primary transition-colors outline-none"
               title="切换搜索引擎"
             >
-              <span className="w-6 h-6 flex items-center justify-center overflow-hidden bg-neutral-200 dark:bg-neutral-700 rounded-full text-neutral-700 dark:text-neutral-300">
-                <FaviconImage url={currentEngine.url} title={currentEngine.name} className="text-xs" />
+              <span className="w-6 h-6 flex items-center justify-center overflow-hidden bg-neutral-200 dark:bg-neutral-700 rounded-full text-neutral-700 dark:text-neutral-300 p-1">
+                <img src={currentEngine.icon} alt={currentEngine.name} className="w-full h-full object-contain drop-shadow-sm" />
               </span>
               <ChevronDown className="size-3.5 opacity-50" />
             </button>
@@ -84,8 +86,8 @@ const SearchBar = () => {
                 onClick={() => changeEngine(engine.id)}
                 className={`cursor-pointer rounded-lg ${engine.id === engineId ? "bg-primary/10 text-primary font-medium" : ""}`}
               >
-                <span className="w-5 h-5 flex items-center justify-center overflow-hidden bg-neutral-100 dark:bg-neutral-800 rounded mr-2">
-                  <FaviconImage url={engine.url} title={engine.name} className="text-[10px]" />
+                <span className="w-5 h-5 flex items-center justify-center overflow-hidden bg-neutral-100 dark:bg-neutral-800 rounded mr-2 p-0.5">
+                  <img src={engine.icon} alt={engine.name} className="w-full h-full object-contain" />
                 </span>
                 {engine.name}
               </DropdownMenuItem>
