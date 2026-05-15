@@ -1,11 +1,9 @@
 import { useState, useMemo } from 'react';
 
-const faviconServices = [
-  (domain: string) => `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
-  (domain: string) => `https://icon.horse/icon/${domain}`,
-  (domain: string) => `https://favicons.githubusercontent.com/${domain}`,
-  (domain: string) => `https://${domain}/favicon.ico`,
-];
+const faviconServices = {
+  'google-mirror': (url: string) => `https://icon.1st.name/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=48&url=${encodeURIComponent(url)}`,
+  'google': (url: string) => `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=48&url=${encodeURIComponent(url)}`
+};
 
 export const FaviconImage = ({ src, title, url, className = "" }: { src?: string, title: string, url: string, className?: string }) => {
   const [errorCount, setErrorCount] = useState(0);
@@ -23,10 +21,13 @@ export const FaviconImage = ({ src, title, url, className = "" }: { src?: string
     const list = [];
     if (src) list.push(src);
     if (domain) {
-      list.push(...faviconServices.map((service) => service(domain)));
+      const serviceKey = (localStorage.getItem('vela_favicon_service') as keyof typeof faviconServices) || 'google-mirror';
+      const service = faviconServices[serviceKey] || faviconServices['google-mirror'];
+      const targetUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+      list.push(service(targetUrl));
     }
     return list;
-  }, [src, domain]);
+  }, [src, domain, url]);
 
   if (!domain && !src || errorCount >= sources.length) {
     return <span className={`text-xl font-bold text-neutral-500 ${className}`}>{title.charAt(0).toUpperCase()}</span>;

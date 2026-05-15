@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings, Clock, CloudSun, ExternalLink, Link } from 'lucide-react';
+import { Settings, Clock, CloudSun, ExternalLink, Link, Globe } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -19,17 +23,23 @@ export const DashboardSettings = () => {
   const [showWeather, setShowWeather] = useState(true);
   const [searchTarget, setSearchTarget] = useState<'_blank' | '_self'>('_blank');
   const [navTarget, setNavTarget] = useState<'_blank' | '_self'>('_blank');
+  const [faviconService, setFaviconService] = useState<'google-mirror' | 'google'>('google-mirror');
 
   useEffect(() => {
     setTimeSize((localStorage.getItem('vela_time_size') as 'comfortable' | 'compact') || 'comfortable');
     setShowWeather(localStorage.getItem('vela_show_weather') !== 'false');
     setSearchTarget((localStorage.getItem('vela_search_target') as '_blank' | '_self') || '_blank');
     setNavTarget((localStorage.getItem('vela_nav_target') as '_blank' | '_self') || '_blank');
+    setFaviconService((localStorage.getItem('vela_favicon_service') as 'google-mirror' | 'google') || 'google-mirror');
   }, []);
 
-  const updateSetting = (key: string, value: string) => {
+  const updateSetting = (key: string, value: string, reload = false) => {
     localStorage.setItem(key, value);
-    window.dispatchEvent(new Event('vela_settings_updated'));
+    if (reload) {
+      window.location.reload();
+    } else {
+      window.dispatchEvent(new Event('vela_settings_updated'));
+    }
   };
 
   return (
@@ -106,6 +116,28 @@ export const DashboardSettings = () => {
                 }} 
               />
             </div>
+
+            <DropdownMenuSeparator className="my-2" />
+
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="px-2 py-1.5 rounded-lg text-sm flex items-center gap-2 cursor-pointer">
+                <Globe className="size-4 opacity-70" />
+                <span>{t('dashboard.faviconService')}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-48 rounded-xl">
+                <DropdownMenuRadioGroup value={faviconService} onValueChange={(val) => {
+                  setFaviconService(val as 'google-mirror' | 'google');
+                  updateSetting('vela_favicon_service', val, true);
+                }}>
+                  <DropdownMenuRadioItem value="google-mirror" className="cursor-pointer">
+                    {t('dashboard.faviconMirror')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="google" className="cursor-pointer">
+                    {t('dashboard.faviconOfficial')}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
           </div>
         </DropdownMenuContent>
       </DropdownMenu>

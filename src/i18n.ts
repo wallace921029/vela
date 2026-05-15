@@ -603,7 +603,10 @@ const resources = {
         "timeComfortable": "Comfortable time size",
         "showWeather": "Show weather and date",
         "searchNewTab": "Open search in new tab",
-        "navNewTab": "Open links in new tab"
+        "navNewTab": "Open links in new tab",
+        "faviconService": "Favicon fetch service",
+        "faviconMirror": "Google Mirror",
+        "faviconOfficial": "Google Official"
       },
       "defaultData": {
         "groupTitle": "Navigation",
@@ -630,3 +633,4 @@ i18n
   });
 
 export default i18n;
+i18n;

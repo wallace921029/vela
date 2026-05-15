@@ -411,7 +411,6 @@ const NavModule = () => {
   const [customSortItemOpenFor, setCustomSortItemOpenFor] = useState<string | null>(null);
 
   // Search state
-  const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
