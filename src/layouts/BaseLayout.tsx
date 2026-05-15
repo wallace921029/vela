@@ -199,16 +199,6 @@ const BaseLayout = () => {
                       <Settings className="mr-2 size-4" />
                       <span>{t("header.accountSettings")}</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/about")}>
-                      <Info className="mr-2 size-4" />
-                      <span>{t("header.about")}</span>
-                    </DropdownMenuItem>
-                    {user.role === 'ADMIN' && (
-                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/system")}>
-                        <SlidersHorizontal className="mr-2 size-4" />
-                        <span>{t("header.systemSettings")}</span>
-                      </DropdownMenuItem>
-                    )}
                     <DropdownMenuItem
                       className="cursor-pointer"
                       onClick={() => fileInputRef.current?.click()}
@@ -220,6 +210,16 @@ const BaseLayout = () => {
                         })}
                       </span>
                     </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/about")}>
+                      <Info className="mr-2 size-4" />
+                      <span>{t("header.about")}</span>
+                    </DropdownMenuItem>
+                    {user.role === 'ADMIN' && (
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/system")}>
+                        <SlidersHorizontal className="mr-2 size-4" />
+                        <span>{t("header.systemSettings")}</span>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={handleLogout}>
                       <LogOut className="mr-2 size-4" />

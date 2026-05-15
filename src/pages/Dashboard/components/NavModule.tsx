@@ -45,6 +45,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 
@@ -152,23 +154,35 @@ const SortDialog = ({ open, onOpenChange, title, items, onSave }: {
 };
 
 
-type CardSize = 'small' | 'medium' | 'large';
+type CardSize = 'extra-small' | 'small' | 'medium' | 'large';
 type DeleteTarget =
   | { type: 'group'; groupId: string; title: string; itemCount: number }
   | { type: 'item'; groupId: string; itemId: string; title: string }
   | { type: 'batch'; count: number };
 
 const CARD_SIZE_STYLES: Record<CardSize, { card: string; icon: string; title: string; desc: string; gap: string }> = {
+  'extra-small': { card: 'h-[40px] p-1.5 rounded-lg', icon: 'w-5 h-5 rounded', title: 'text-[11px]', desc: 'text-[9px]', gap: 'gap-1.5' },
   small: { card: 'h-[52px] p-2 rounded-lg', icon: 'w-6 h-6 rounded-md', title: 'text-xs', desc: 'text-[9px]', gap: 'gap-2' },
   medium: { card: 'h-[68px] p-3 rounded-xl', icon: 'w-8 h-8 rounded-lg', title: 'text-sm', desc: 'text-[10px]', gap: 'gap-3' },
   large: { card: 'h-[88px] p-4 rounded-xl', icon: 'w-10 h-10 rounded-lg', title: 'text-base', desc: 'text-xs', gap: 'gap-4' },
 };
 
 const GRID_COLS: Record<CardSize, string> = {
+  'extra-small': 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8',
   small: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6',
   medium: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5',
   large: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
 };
+
+const CARD_SIZE_OPTIONS: { value: CardSize; label: string }[] = [
+  { value: 'extra-small', label: 'Extra small' },
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large' },
+];
+
+const isCardSize = (value: string | null): value is CardSize =>
+  CARD_SIZE_OPTIONS.some((option) => option.value === value);
 
 // Static Item Component
 const ItemCard = ({ 
@@ -177,7 +191,7 @@ const ItemCard = ({
   onEdit, 
   onDelete,
   onMove,
-  cardSize = 'medium',
+  cardSize = 'small',
   isBatchMode = false,
   isSelected = false,
   onToggleSelect
@@ -194,6 +208,7 @@ const ItemCard = ({
 }) => {
   const { t } = useTranslation();
   const s = CARD_SIZE_STYLES[cardSize];
+  const isExtraSmall = cardSize === 'extra-small';
   const [navTarget, setNavTarget] = useState<'_blank' | '_self'>('_blank');
 
   useEffect(() => {
@@ -241,9 +256,11 @@ const ItemCard = ({
           <h4 className={`font-semibold text-neutral-900 dark:text-neutral-100 truncate group-hover:text-primary transition-colors ${s.title}`}>
             {item.title}
           </h4>
-          <p className={`text-neutral-500 dark:text-neutral-400 mt-0.5 truncate ${s.desc}`}>
-            {item.description || new URL(item.url).hostname}
-          </p>
+          {!isExtraSmall && (
+            <p className={`text-neutral-500 dark:text-neutral-400 mt-0.5 truncate ${s.desc}`}>
+              {item.description || new URL(item.url).hostname}
+            </p>
+          )}
         </div>
       </a>
 
@@ -287,7 +304,7 @@ const GroupBlock = ({
   onMoveItem,
   onSortItems,
   onOpenCustomSort,
-  cardSize = 'medium',
+  cardSize = 'small',
   isBatchMode = false,
   selectedItems = [],
   onToggleSelect
@@ -393,7 +410,8 @@ const NavModule = () => {
 
   const [groupSortDir, setGroupSortDir] = useState<'asc' | 'desc'>('asc');
   const [cardSize, setCardSize] = useState<CardSize>(() => {
-    return (localStorage.getItem('vela_card_size') as CardSize) || 'medium';
+    const savedSize = localStorage.getItem('vela_card_size');
+    return isCardSize(savedSize) ? savedSize : 'small';
   });
   
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
@@ -561,15 +579,12 @@ const NavModule = () => {
     sortGroups(newDir);
   };
 
-  const handleToggleCardSize = () => {
-    const order: CardSize[] = ['small', 'medium', 'large'];
-    const nextIdx = (order.indexOf(cardSize) + 1) % order.length;
-    const next = order[nextIdx];
+  const handleCardSizeChange = (next: CardSize) => {
     setCardSize(next);
     localStorage.setItem('vela_card_size', next);
   };
 
-  const cardSizeLabel: Record<CardSize, string> = { small: 'S', medium: 'M', large: 'L' };
+  const cardSizeLabel: Record<CardSize, string> = { 'extra-small': 'XS', small: 'S', medium: 'M', large: 'L' };
 
   const currentSortItemGroup = groups.find(g => g.id === customSortItemOpenFor);
 
@@ -621,10 +636,26 @@ const NavModule = () => {
           </Button>
 
           <div className={`absolute left-full top-0 h-full flex items-center gap-2 overflow-hidden transition-all duration-300 ease-out origin-left z-10 ${showMoreOps ? 'max-w-[600px] opacity-100 pl-2' : 'max-w-0 opacity-0 pointer-events-none'}`}>
-            <Button variant="outline" size="icon" onClick={handleToggleCardSize} className="h-8 w-8 rounded-full shadow-sm relative shrink-0" title={`Card Size: ${cardSizeLabel[cardSize]}`}>
-              <LayoutGrid className="size-3.5" />
-              <span className="absolute -bottom-0.5 -right-0.5 text-[8px] font-bold bg-primary text-primary-foreground rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">{cardSizeLabel[cardSize]}</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-8 w-8 rounded-full shadow-sm relative shrink-0" title={`Card Size: ${cardSizeLabel[cardSize]}`}>
+                  <LayoutGrid className="size-3.5" />
+                  <span className="absolute -bottom-0.5 -right-0.5 text-[8px] font-bold bg-primary text-primary-foreground rounded-full min-w-3.5 h-3.5 px-0.5 flex items-center justify-center leading-none">
+                    {cardSizeLabel[cardSize]}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40 rounded-xl">
+                <DropdownMenuRadioGroup value={cardSize} onValueChange={(value) => handleCardSizeChange(value as CardSize)}>
+                  {CARD_SIZE_OPTIONS.map((option) => (
+                    <DropdownMenuRadioItem key={option.value} value={option.value} className="cursor-pointer">
+                      <span className="w-5 text-xs font-semibold">{cardSizeLabel[option.value]}</span>
+                      <span>{option.label}</span>
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button variant="outline" size="icon" onClick={handleToggleGlobalSort} className="h-8 w-8 rounded-full shadow-sm shrink-0" title="A-Z / Z-A">
               {groupSortDir === 'asc' ? <ArrowDownAZ className="size-3.5" /> : <ArrowUpZA className="size-3.5" />}

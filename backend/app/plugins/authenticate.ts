@@ -7,6 +7,10 @@ export const registerAuthenticatePlugin = (fastify: FastifyInstance) => {
     try {
       await request.jwtVerify();
       const authUser = request.user as AuthUser;
+      if (typeof authUser.exp !== 'number') {
+        return reply.status(401).send({ error: 'Authentication token is invalid or expired', code: 'AUTH_INVALID' });
+      }
+
       const user = db.prepare('SELECT email, role, status, nickname, avatar_url FROM users WHERE id = ?').get(authUser.id) as {
         email: string;
         role: string;
@@ -16,7 +20,7 @@ export const registerAuthenticatePlugin = (fastify: FastifyInstance) => {
       } | undefined;
 
       if (!user) {
-        return reply.status(401).send({ error: 'User not found' });
+        return reply.status(401).send({ error: 'User not found', code: 'AUTH_INVALID' });
       }
 
       if (user.status !== 'ACTIVE') {
@@ -31,8 +35,8 @@ export const registerAuthenticatePlugin = (fastify: FastifyInstance) => {
         nickname: user.nickname,
         avatarUrl: user.avatar_url,
       };
-    } catch (err) {
-      return reply.send(err);
+    } catch {
+      return reply.status(401).send({ error: 'Authentication token is invalid or expired', code: 'AUTH_INVALID' });
     }
   });
 };

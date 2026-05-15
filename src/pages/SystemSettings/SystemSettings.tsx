@@ -1,42 +1,36 @@
-import { ArrowLeft, Ticket, Users } from 'lucide-react';
+import { Ticket, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, Outlet, useNavigate } from 'react-router';
+import { NavLink, Outlet } from 'react-router';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import ContentPageLayout, { ContentPageHeader } from '@/layouts/ContentPageLayout';
 
 const SystemSettings = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   if (user?.role !== 'ADMIN') {
     return (
-      <div className="mx-auto w-full max-w-4xl px-6 py-8 md:px-10">
+      <ContentPageLayout>
         <Alert variant="destructive">
           <AlertTitle>{t('system.forbiddenTitle')}</AlertTitle>
           <AlertDescription>{t('system.forbiddenDescription')}</AlertDescription>
         </Alert>
-      </div>
+      </ContentPageLayout>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-8 md:px-10">
-      <div className="mb-6 flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
-          <ArrowLeft className="size-4" />
-          <span className="sr-only">{t('system.backToDashboard')}</span>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t('system.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('system.description')}</p>
-        </div>
-      </div>
+    <ContentPageLayout>
+      <ContentPageHeader
+        title={t('system.title')}
+        description={t('system.description')}
+        backLabel={t('system.backToDashboard')}
+      />
 
-      <div className="gap-5 lg:grid lg:grid-cols-[12rem_minmax(0,1fr)]">
-        <nav className="mb-5 flex h-fit w-full flex-col gap-1 rounded-lg bg-white/60 p-1 shadow-sm backdrop-blur-md dark:bg-neutral-950/45 lg:mb-0">
+      <div className="gap-5 md:grid md:grid-cols-[10rem_minmax(0,1fr)]">
+        <nav className="mb-5 flex h-fit w-full flex-col gap-1 rounded-lg bg-white/60 p-1 shadow-sm backdrop-blur-md dark:bg-neutral-950/45 md:mb-0">
           <NavLink
             to="users"
             className={({ isActive }) => cn(
@@ -63,7 +57,7 @@ const SystemSettings = () => {
           <Outlet />
         </div>
       </div>
-    </div>
+    </ContentPageLayout>
   );
 };
 

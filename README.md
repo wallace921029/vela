@@ -2,109 +2,170 @@
 
 [English](./README.md) | [中文](./README.zh.md)
 
-A self-hosted personal navigation dashboard. Organize your bookmarks into draggable groups, share the instance with family or a team via invite codes, and switch language and theme on the fly.
+Vela is a self-hosted personal navigation workspace for organizing frequently used websites, importing browser bookmarks, keeping quick notes, and sharing one instance with multiple users through invite-based registration.
 
 ## Preview
 
-![Dark Theme](./captures/dark_theme.png)  
-![Light Theme](./captures/light_theme.png)  
-![Invite Code](./captures/invite_code_feature.png)  
-![Quick Note](./captures/quick_note_feature.png)  
-![Keepscreenon](./captures/keepsceenon_feature.png)  
+![Dark Theme](./captures/dark_theme.png)
+![Light Theme](./captures/light_theme.png)
+![Invite Code](./captures/invite_code_feature.png)
+![Quick Note](./captures/quick_note_feature.png)
+![Keep Screen On](./captures/keepsceenon_feature.png)
 
 ## Features
 
-- **Invite-code registration** — closed by default; only people with a valid invite code can sign up
-- **Drag-and-drop navigation** — reorder groups and links with `@dnd-kit`, with optimistic persistence to SQLite
-- **Browser bookmark import** — import an exported `bookmarks.html` from any major browser
-- **Multi-user with roles** — `ADMIN` users get a system-settings panel to manage users and invite codes
-- **Internationalization** — built-in English and Simplified Chinese (`react-i18next`)
-- **Theming** — light / dark / system, powered by `next-themes`
-- **One-command Docker deploy** — backend + frontend + persistent SQLite volume
+- Group, search, sort, and resize navigation cards
+- Import browser bookmarks from an HTML export file
+- Quick notes for lightweight text records
+- Invite-code registration; public sign-up is not open by default
+- Multi-user support with roles; admins can manage users and invite codes
+- Homepage clock, weather, search, and keep-screen-on mode
+- SQLite storage, suitable for a personal server or NAS
 
-## Tech stack
+## Docker Deployment
 
-| Layer    | Stack                                                                          |
-| -------- | ------------------------------------------------------------------------------ |
-| Frontend | React 19, Vite, TypeScript, Tailwind CSS v4, shadcn/ui, react-router 7         |
-| Backend  | Fastify 5, `@fastify/jwt`, bcryptjs, better-sqlite3                            |
-| Storage  | SQLite (WAL mode) on the host filesystem                                       |
-| Deploy   | Docker Compose (Nginx static + Node.js backend)                                |
-
-## Quick start with Docker
-
-Requires Docker 24+ with the Compose plugin.
+Requirements: Docker 24+ with the Compose plugin.
 
 ```sh
-git clone <repo-url> vela
+git clone https://github.com/wallace921029/vela.git
 cd vela
 cp .env.example .env
-# Edit .env: set JWT_SECRET to a long random string (e.g. `openssl rand -base64 48`)
+```
+
+Edit `.env`:
+
+```env
+JWT_SECRET=replace-this-with-a-long-random-string
+INITIAL_INVITE_CODE=000000
+```
+
+Start the app:
+
+```sh
 docker compose up -d --build
 ```
 
-Open <http://localhost:10000> and register the first administrator with the invite code from `INITIAL_INVITE_CODE` (defaults to `000000`). Once consumed, generate further invite codes from the **System Settings → Invite Codes** page.
+Open:
 
-SQLite data is persisted to `./data/` on the host. Back it up by copying that directory.
+```text
+http://localhost:10000
+```
 
-## Local development
+Use `INITIAL_INVITE_CODE` for the first registration. After that invite code is used, changing the value in `.env` will not create a new invite code automatically. Generate new invite codes from System Settings.
 
-Requires Node.js 22+ (LTS).
+## Local Development
+
+Requirements: Node.js 22+.
 
 ```sh
 npm install
 npm --prefix backend install
-cp .env.example .env        # only needed once
-./dev.sh                    # or: npm run dev
+cp .env.example .env
+npm run dev
 ```
 
-- Frontend: <http://localhost:5173>
-- Backend:  <http://localhost:3000>
+Open:
 
-Vite proxies `/api/*` to the backend, so the frontend always calls relative URLs.
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:3000`
 
-### Useful scripts
+Useful commands:
 
-| Command                       | What it does                                |
-| ----------------------------- | ------------------------------------------- |
-| `npm run dev`                 | Run backend and frontend concurrently       |
-| `npm run dev:frontend`        | Vite dev server only                        |
-| `npm run dev:backend`         | Fastify with `tsx watch` only               |
-| `npm run build`               | Build backend (tsc) then frontend (vite)    |
-| `npm run lint`                | ESLint over the frontend                    |
-| `npm run preview`             | Preview the built frontend locally          |
-
-## Configuration
-
-All runtime configuration lives in a single `.env` file at the repository root.
-
-| Variable              | Required | Description                                                                 |
-| --------------------- | -------- | --------------------------------------------------------------------------- |
-| `JWT_SECRET`          | Yes      | Secret used to sign JWTs. Use a long random string.                         |
-| `INITIAL_INVITE_CODE` | No       | Seeded as an ADMIN invite on first boot. Defaults to `000000`. Has no effect after it has been used. |
-
-## Project layout
-
+```sh
+npm run dev              # Start frontend and backend
+npm run build            # Build backend and frontend
+npm run build:frontend   # Build frontend only
+npm run build:backend    # Build backend only
+npm run lint             # Run ESLint
 ```
-vela/
-├── src/                # React frontend
-│   ├── pages/          # Route-level pages (Auth, Dashboard, Account, SystemSettings, About)
-│   ├── layouts/        # BaseLayout with header, theme, language, profile menu
-│   ├── components/     # Shared components, including shadcn/ui primitives
-│   ├── contexts/       # AuthContext: token + user in localStorage
-│   ├── hooks/          # Data hooks (e.g. useNavData)
-│   └── router/         # react-router config (lazy routes)
-├── backend/
-│   └── app/
-│       ├── main.ts     # Fastify entry: CORS, JWT, plugins, routes
-│       ├── db.ts       # SQLite init and schema
-│       ├── plugins/    # authenticate decorator
-│       └── router/     # auth.ts, admin.ts, nav.ts
-├── docker-compose.yml
-├── Dockerfile          # Frontend (Nginx serving built assets)
-├── backend/Dockerfile  # Backend (Node.js LTS)
-└── nginx.conf          # Static hosting + /api reverse proxy
+
+## Back Up the Database Before Updating
+
+Before updating, stop the service and back up the database. Vela uses SQLite in WAL mode, so the database may consist of multiple files.
+
+For Docker deployment, the database is stored on the host at:
+
+```text
+./data/
 ```
+
+For local development, the database is stored at:
+
+```text
+backend/db/
+```
+
+Back up these files:
+
+```text
+vela.db
+vela.db-wal
+vela.db-shm
+```
+
+The safest option is to stop the service and copy the whole directory:
+
+```sh
+docker compose down
+cp -a ./data ./backup-data-$(date +%Y%m%d-%H%M%S)
+```
+
+On Windows PowerShell:
+
+```powershell
+docker compose down
+Copy-Item -Recurse -Force .\data ".\backup-data-$(Get-Date -Format yyyyMMdd-HHmmss)"
+```
+
+For local development, replace `./data` with `./backend/db`.
+
+## Update Procedure
+
+Recommended Docker update flow:
+
+```sh
+docker compose down
+cp -a ./data ./backup-data-$(date +%Y%m%d-%H%M%S)
+git pull
+docker compose up -d --build
+docker compose logs -f --tail=100
+```
+
+After confirming that the site and login work correctly, keep a few recent backups and remove older backup directories as needed.
+
+## Restore the Database
+
+Stop the service first:
+
+```sh
+docker compose down
+```
+
+Copy the backup files back into the data directory:
+
+```sh
+cp -a ./backup-data-YYYYMMDD-HHMMSS/. ./data/
+docker compose up -d
+```
+
+On Windows PowerShell:
+
+```powershell
+docker compose down
+Copy-Item -Recurse -Force ".\backup-data-YYYYMMDD-HHMMSS\*" .\data\
+docker compose up -d
+```
+
+When restoring, make sure `vela.db`, `vela.db-wal`, and `vela.db-shm` come from the same backup to avoid SQLite inconsistency.
+
+## Security Notes
+
+- Set `JWT_SECRET` to a long random string. Do not use the default value.
+- Do not commit `.env`, database files, or backup directories.
+- Changing `JWT_SECRET` invalidates existing login tokens and users will need to sign in again.
+- Use HTTPS through a reverse proxy for public deployments.
+- Back up `./data` or `backend/db` regularly, especially before updates, server migrations, or database changes.
+- `INITIAL_INVITE_CODE` is only used during initial setup. After it is consumed, create new invite codes from System Settings.
 
 ## License
 

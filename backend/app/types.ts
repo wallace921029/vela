@@ -7,6 +7,7 @@ export interface AuthUser {
   status?: string;
   nickname?: string | null;
   avatarUrl?: string | null;
+  exp?: number;
 }
 
 export type AuthenticatedRequest = FastifyRequest & {

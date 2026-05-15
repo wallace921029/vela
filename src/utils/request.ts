@@ -1,4 +1,9 @@
 import axios from 'axios';
+import type { AxiosError } from 'axios';
+
+type AuthErrorResponse = {
+  code?: string;
+};
 
 const request = axios.create({
   timeout: 15000,
@@ -26,8 +31,16 @@ request.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
-    // We can handle global error behaviors here if needed
+  (error: AxiosError<AuthErrorResponse>) => {
+    if (error.response?.status === 401 && error.response.data?.code === 'AUTH_INVALID') {
+      localStorage.removeItem('vela_token');
+      localStorage.removeItem('vela_user');
+
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+
     return Promise.reject(error);
   }
 );

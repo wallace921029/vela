@@ -1,111 +1,172 @@
 # Vela
 
-[English](./README.md) | [中文](./README.zh.md)
+[README](./README.md) | [中文说明](./README.zh.md)
 
-一个自部署的个人导航面板。把书签整理成可拖拽的分组，通过邀请码与家人或团队共享同一个实例，并随时切换语言与主题。
+Vela 是一个适合自部署的个人导航工作台。它用于管理常用网站、导入浏览器书签、记录速记内容，并支持多用户、邀请注册、角色权限、主题切换和中英文界面。
 
 ## 预览
 
-![Dark Theme](./captures/dark_theme.png)  
-![Light Theme](./captures/light_theme.png)  
-![Invite Code](./captures/invite_code_feature.png)  
-![Quick Note](./captures/quick_note_feature.png)  
-![Keepscreenon](./captures/keepsceenon_feature.png)  
+![Dark Theme](./captures/dark_theme.png)
+![Light Theme](./captures/light_theme.png)
+![Invite Code](./captures/invite_code_feature.png)
+![Quick Note](./captures/quick_note_feature.png)
+![Keep Screen On](./captures/keepsceenon_feature.png)
 
-## 功能特性
+## 主要功能
 
-- **邀请码注册** — 默认关闭注册入口，仅持有有效邀请码的用户可以加入
-- **拖拽式导航管理** — 基于 `@dnd-kit` 重排分组与链接，乐观更新并同步到 SQLite
-- **浏览器书签导入** — 直接导入主流浏览器导出的 `bookmarks.html`
-- **多用户与角色权限** — `ADMIN` 角色拥有系统设置面板，可管理用户和邀请码
-- **国际化** — 内置英文与简体中文（`react-i18next`）
-- **主题切换** — 浅色 / 深色 / 跟随系统，由 `next-themes` 驱动
-- **一键 Docker 部署** — 后端 + 前端 + 持久化 SQLite 卷
+- 导航链接分组、搜索、排序和卡片尺寸切换
+- 浏览器书签 HTML 文件导入
+- 速记页面，用于保存轻量文本
+- 邀请码注册，默认不开放自由注册
+- 多用户和角色权限，管理员可管理用户和邀请码
+- 首页时间、天气、搜索、保持屏幕常亮
+- 数据存储在 SQLite，适合个人服务器或 NAS 自托管
 
-## 技术栈
+## Docker 部署
 
-| 层级 | 技术 |
-| ---- | ---- |
-| 前端 | React 19、Vite、TypeScript、Tailwind CSS v4、shadcn/ui、react-router 7 |
-| 后端 | Fastify 5、`@fastify/jwt`、bcryptjs、better-sqlite3 |
-| 存储 | SQLite（WAL 模式），数据落盘到宿主机 |
-| 部署 | Docker Compose（Nginx 静态资源 + Node.js 后端） |
-
-## Docker 快速开始
-
-需要 Docker 24+ 并启用 Compose 插件。
+要求：Docker 24+，并支持 Compose 插件。
 
 ```sh
-git clone <repo-url> vela
+git clone https://github.com/wallace921029/vela.git
 cd vela
 cp .env.example .env
-# 修改 .env：将 JWT_SECRET 设置为一段长随机字符串（如 `openssl rand -base64 48`）
+```
+
+编辑 `.env`：
+
+```env
+JWT_SECRET=请替换为一段足够长的随机字符串
+INITIAL_INVITE_CODE=000000
+```
+
+启动：
+
+```sh
 docker compose up -d --build
 ```
 
-打开 <http://localhost:10000>，使用 `.env` 中 `INITIAL_INVITE_CODE` 配置的邀请码（默认 `000000`）注册第一个管理员账号。该邀请码被使用后，可在 **系统设置 → 邀请码** 页面继续生成新的邀请码。
+访问：
 
-SQLite 数据会持久化到宿主机的 `./data/` 目录，备份只需复制该目录。
+```text
+http://localhost:10000
+```
+
+首次注册使用 `INITIAL_INVITE_CODE`。该邀请码被使用后，再修改 `.env` 中的值不会自动创建新的邀请码；后续邀请码请在系统设置中生成。
 
 ## 本地开发
 
-需要 Node.js 22+（LTS）。
+要求：Node.js 22+。
 
 ```sh
 npm install
 npm --prefix backend install
-cp .env.example .env        # 首次执行一次即可
-./dev.sh                    # 或：npm run dev
+cp .env.example .env
+npm run dev
 ```
 
-- 前端：<http://localhost:5173>
-- 后端：<http://localhost:3000>
+访问：
 
-Vite 会把 `/api/*` 代理到后端，前端始终使用相对路径调用接口。
+- 前端：`http://localhost:5173`
+- 后端：`http://localhost:3000`
 
-### 常用脚本
+常用命令：
 
-| 命令                    | 作用                          |
-| ----------------------- | ----------------------------- |
-| `npm run dev`           | 同时启动前后端                |
-| `npm run dev:frontend`  | 仅启动 Vite 开发服务器        |
-| `npm run dev:backend`   | 仅启动 Fastify（`tsx watch`） |
-| `npm run build`         | 先构建后端再打包前端          |
-| `npm run lint`          | 对前端运行 ESLint             |
-| `npm run preview`       | 本地预览已构建的前端          |
-
-## 配置
-
-所有运行时配置都集中在仓库根目录的 `.env` 文件里。
-
-| 变量名 | 是否必填 | 说明 |
-| ------ | -------- | ---- |
-| `JWT_SECRET`          | 是 | 用于签发 JWT 的密钥，请使用长随机字符串 |
-| `INITIAL_INVITE_CODE` | 否 | 首次启动时写入数据库的管理员邀请码，默认 `000000`，被使用后再修改无效 |
-
-## 项目结构
-
-```
-vela/
-├── src/                # React 前端
-│   ├── pages/          # 路由页面（Auth、Dashboard、Account、SystemSettings、About）
-│   ├── layouts/        # BaseLayout：顶栏、主题、语言、用户菜单
-│   ├── components/     # 共享组件，含 shadcn/ui 基础组件
-│   ├── contexts/       # AuthContext：localStorage 中的 token 与用户信息
-│   ├── hooks/          # 数据 hooks（如 useNavData）
-│   └── router/         # react-router 配置（懒加载路由）
-├── backend/
-│   └── app/
-│       ├── main.ts     # Fastify 入口：CORS、JWT、插件、路由
-│       ├── db.ts       # SQLite 初始化与建表
-│       ├── plugins/    # authenticate 装饰器
-│       └── router/     # auth.ts、admin.ts、nav.ts
-├── docker-compose.yml
-├── Dockerfile          # 前端镜像（Nginx 托管构建产物）
-├── backend/Dockerfile  # 后端镜像（Node.js LTS）
-└── nginx.conf          # 静态托管 + /api 反向代理
+```sh
+npm run dev              # 同时启动前后端
+npm run build            # 构建后端和前端
+npm run build:frontend   # 只构建前端
+npm run build:backend    # 只构建后端
+npm run lint             # 运行 ESLint
 ```
 
-## 开源协议
+## 更新前备份数据库
+
+更新前建议先停止服务并备份数据库。项目使用 SQLite WAL 模式，数据库相关文件可能不止一个。
+
+Docker 部署时，数据库在宿主机：
+
+```text
+./data/
+```
+
+本地开发时，数据库在：
+
+```text
+backend/db/
+```
+
+需要备份的文件：
+
+```text
+vela.db
+vela.db-wal
+vela.db-shm
+```
+
+如果服务已经停止，直接备份整个目录最稳妥：
+
+```sh
+docker compose down
+cp -a ./data ./backup-data-$(date +%Y%m%d-%H%M%S)
+```
+
+在 Windows PowerShell 中可以使用：
+
+```powershell
+docker compose down
+Copy-Item -Recurse -Force .\data ".\backup-data-$(Get-Date -Format yyyyMMdd-HHmmss)"
+```
+
+本地开发环境则把 `./data` 替换为 `./backend/db`。
+
+## 更新部署
+
+推荐流程：
+
+```sh
+docker compose down
+cp -a ./data ./backup-data-$(date +%Y%m%d-%H%M%S)
+git pull
+docker compose up -d --build
+docker compose logs -f --tail=100
+```
+
+确认页面和登录正常后，可以保留最近几份备份，删除更旧的备份目录。
+
+## 恢复数据库
+
+恢复前先停止服务：
+
+```sh
+docker compose down
+```
+
+将备份目录中的数据库文件复制回数据目录：
+
+```sh
+cp -a ./backup-data-YYYYMMDD-HHMMSS/. ./data/
+docker compose up -d
+```
+
+Windows PowerShell：
+
+```powershell
+docker compose down
+Copy-Item -Recurse -Force ".\backup-data-YYYYMMDD-HHMMSS\*" .\data\
+docker compose up -d
+```
+
+恢复时请确保 `vela.db`、`vela.db-wal`、`vela.db-shm` 来自同一次备份，避免 SQLite 数据不一致。
+
+## 安全说明
+
+- `JWT_SECRET` 必须使用长随机字符串，不要使用默认值。
+- 不要提交 `.env`、数据库文件或备份目录。
+- 如果修改 `JWT_SECRET`，所有已登录用户的旧 token 都会失效，需要重新登录。
+- 建议通过反向代理启用 HTTPS。
+- 定期备份 `./data` 或 `backend/db`，尤其是在升级、迁移服务器和修改数据库前。
+- `INITIAL_INVITE_CODE` 只用于首次初始化；邀请码被使用后，请在系统设置中生成新的邀请码。
+
+## 许可证
 
 [MIT](./LICENSE) © 2026 Uzhi

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   Plus,
@@ -10,7 +9,6 @@ import {
   AlertCircle,
   MoreHorizontal,
   Trash2,
-  ArrowLeft,
   AlignJustify,
   LayoutList,
 } from 'lucide-react';
@@ -36,6 +34,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import ContentPageLayout, { ContentPageHeader } from '@/layouts/ContentPageLayout';
 import TablePagination from '@/pages/SystemSettings/components/TablePagination';
 import request from '@/utils/request';
 
@@ -65,7 +64,6 @@ const LAYOUT_STORAGE_KEY = 'vela_notes_layout';
 
 const Notes = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [total, setTotal] = useState(0);
@@ -260,20 +258,16 @@ const Notes = () => {
   const isComfortable = layoutMode === 'comfortable';
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-4rem)] w-full max-w-6xl flex-col gap-4 px-4 py-6 md:px-8">
-      <header className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
-          <ArrowLeft className="size-4" />
-          <span className="sr-only">{t('notes.backToDashboard')}</span>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t('notes.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('notes.description')}</p>
-        </div>
-      </header>
+    <ContentPageLayout className="flex h-[calc(100vh-4rem)] flex-col gap-4">
+      <ContentPageHeader
+        title={t('notes.title')}
+        description={t('notes.description')}
+        backLabel={t('notes.backToDashboard')}
+        className="mb-0"
+      />
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
-        <aside className="flex min-h-0 flex-col rounded-xl border border-border bg-card/50 backdrop-blur md:w-80 md:shrink-0">
+        <aside className="flex min-h-0 flex-col rounded-xl border border-border bg-card/50 backdrop-blur md:w-72 md:shrink-0">
           <div className="flex items-center gap-1.5 border-b border-border/60 p-2">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -450,7 +444,7 @@ const Notes = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </ContentPageLayout>
   );
 };
 

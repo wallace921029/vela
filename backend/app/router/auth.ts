@@ -4,6 +4,8 @@ import crypto from 'crypto';
 import { db } from '../db.js';
 import type { AuthUser, InviteCodeRow, UserRow } from '../types.js';
 
+const JWT_EXPIRES_IN = '90d';
+
 interface RegisterBody {
   email?: string;
   password?: string;
@@ -107,6 +109,8 @@ export const registerAuthRoutes = (fastify: FastifyInstance) => {
       status: user.status,
       nickname: user.nickname,
       avatarUrl: user.avatar_url,
+    }, {
+      expiresIn: JWT_EXPIRES_IN,
     });
 
     return {
