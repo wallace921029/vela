@@ -273,11 +273,11 @@ const ItemCard = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-36">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(groupId, item); }}>
-                <FolderOutput className="mr-2 size-4" /> {t('nav.moveTo')}
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(groupId, item); }}>
                 <Pencil className="mr-2 size-4" /> {t('nav.edit')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(groupId, item); }}>
+                <FolderOutput className="mr-2 size-4" /> {t('nav.moveTo')}
               </DropdownMenuItem>
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
@@ -307,7 +307,8 @@ const GroupBlock = ({
   cardSize = 'small',
   isBatchMode = false,
   selectedItems = [],
-  onToggleSelect
+  onToggleSelect,
+  isHighlighted = false
 }: { 
   group: NavGroup; 
   onEditGroup: (g: NavGroup) => void; 
@@ -322,6 +323,7 @@ const GroupBlock = ({
   isBatchMode?: boolean;
   selectedItems?: {groupId: string, itemId: string}[];
   onToggleSelect?: (groupId: string, itemId: string) => void;
+  isHighlighted?: boolean;
 }) => {
   const { t } = useTranslation();
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -333,55 +335,70 @@ const GroupBlock = ({
   };
 
   return (
-    <div id={`group-${group.id}`} className="space-y-4 rounded-2xl scroll-mt-24" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 500px' }}>
-      <div className="flex items-center group/header">
-        <div className="flex items-center gap-2">
-          <h3 className="font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-2 text-lg">
-            {group.title}
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
-              {group.items.length}
-            </span>
-          </h3>
+    <div id={`group-${group.id}`} className="relative z-0 scroll-mt-24">
+      {/* Highlight Backdrop */}
+      <div 
+        className={`pointer-events-none absolute -inset-2 sm:-inset-3 -z-10 rounded-2xl transition-all duration-1000 ${
+          isHighlighted 
+            ? 'bg-primary/15 ring-2 ring-primary/50 dark:bg-primary/20 dark:ring-primary/50' 
+            : 'bg-transparent ring-0 ring-transparent'
+        }`}
+        aria-hidden="true"
+      />
+
+      <div 
+        className="space-y-4"
+        style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 500px' }}
+      >
+        <div className="flex items-center group/header">
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-2 text-lg">
+              {group.title}
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+                {group.items.length}
+              </span>
+            </h3>
+          </div>
+          
+          <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity ml-4">
+            <Button variant="ghost" size="icon" onClick={() => onOpenItemDialog(group.id)} className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10" title={t('nav.addNav')}>
+              <Plus className="size-4" />
+            </Button>
+
+            <Button variant="ghost" size="icon" onClick={handleToggleSort} className="h-8 w-8 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100" title="A-Z / Z-A">
+              {sortDir === 'asc' ? <ArrowDownAZ className="size-4" /> : <ArrowUpZA className="size-4" />}
+            </Button>
+
+            <Button variant="ghost" size="icon" onClick={() => onOpenCustomSort(group.id)} className="h-8 w-8 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100" title={t('nav.customSort')}>
+              <ListOrdered className="size-4" />
+            </Button>
+
+            <Button variant="ghost" size="icon" onClick={() => onEditGroup(group)} className="h-8 w-8 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100" title={t('nav.editGroup')}>
+              <Pencil className="size-4" />
+            </Button>
+
+            <Button variant="ghost" size="icon" onClick={() => onDeleteGroup(group.id)} className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" title={t('nav.deleteGroup')}>
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
         </div>
-        
-        <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity ml-4">
-          <Button variant="ghost" size="icon" onClick={() => onOpenItemDialog(group.id)} className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10" title={t('nav.addNav')}>
-            <Plus className="size-4" />
-          </Button>
 
-          <Button variant="ghost" size="icon" onClick={handleToggleSort} className="h-8 w-8 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100" title="A-Z / Z-A">
-            {sortDir === 'asc' ? <ArrowDownAZ className="size-4" /> : <ArrowUpZA className="size-4" />}
-          </Button>
-
-          <Button variant="ghost" size="icon" onClick={() => onOpenCustomSort(group.id)} className="h-8 w-8 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100" title={t('nav.customSort')}>
-            <ListOrdered className="size-4" />
-          </Button>
-
-          <Button variant="ghost" size="icon" onClick={() => onEditGroup(group)} className="h-8 w-8 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100" title={t('nav.editGroup')}>
-            <Pencil className="size-4" />
-          </Button>
-
-          <Button variant="ghost" size="icon" onClick={() => onDeleteGroup(group.id)} className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" title={t('nav.deleteGroup')}>
-            <Trash2 className="size-4" />
-          </Button>
+        <div className={`grid gap-3 md:gap-4 ${GRID_COLS[cardSize]}`}>
+          {group.items.map((item) => (
+            <ItemCard 
+              key={item.id} 
+              item={item} 
+              groupId={group.id} 
+              onEdit={onEditItem} 
+              onDelete={onDeleteItem}
+              onMove={onMoveItem}
+              cardSize={cardSize}
+              isBatchMode={isBatchMode}
+              isSelected={selectedItems.some(s => s.groupId === group.id && s.itemId === item.id)}
+              onToggleSelect={onToggleSelect}
+            />
+          ))}
         </div>
-      </div>
-
-      <div className={`grid gap-3 md:gap-4 ${GRID_COLS[cardSize]}`}>
-        {group.items.map((item) => (
-          <ItemCard 
-            key={item.id} 
-            item={item} 
-            groupId={group.id} 
-            onEdit={onEditItem} 
-            onDelete={onDeleteItem}
-            onMove={onMoveItem}
-            cardSize={cardSize}
-            isBatchMode={isBatchMode}
-            isSelected={selectedItems.some(s => s.groupId === group.id && s.itemId === item.id)}
-            onToggleSelect={onToggleSelect}
-          />
-        ))}
       </div>
     </div>
   );
@@ -442,9 +459,20 @@ const NavModule = () => {
   const [moveTarget, setMoveTarget] = useState<{groupId: string, itemId: string} | null>(null);
   const [selectedTargetGroup, setSelectedTargetGroup] = useState<string>('');
 
+  // Highlight state
+  const [highlightedGroupId, setHighlightedGroupId] = useState<string | null>(null);
+
   if (!isLoaded) {
     return <div className="flex justify-center py-20 text-neutral-400">Loading...</div>;
   }
+
+  const handleScrollToGroup = (groupId: string) => {
+    document.getElementById(`group-${groupId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setHighlightedGroupId(groupId);
+    setTimeout(() => {
+      setHighlightedGroupId((prev) => prev === groupId ? null : prev);
+    }, 1500);
+  };
 
   const handleOpenGroupDialog = (group?: NavGroup) => {
     if (group) {
@@ -699,7 +727,7 @@ const NavModule = () => {
               {filteredGroups.map((group) => (
                 <button
                   key={group.id}
-                  onClick={() => document.getElementById(`group-${group.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  onClick={() => handleScrollToGroup(group.id)}
                   className="min-w-0 whitespace-normal break-words rounded-md px-2.5 py-1.5 text-left text-xs font-medium leading-snug text-neutral-500 transition-colors hover:bg-white/70 hover:text-primary dark:text-neutral-400 dark:hover:bg-neutral-800/70 dark:hover:text-primary"
                   title={group.title}
                 >
@@ -727,6 +755,7 @@ const NavModule = () => {
               isBatchMode={isBatchMode}
               selectedItems={selectedItems}
               onToggleSelect={handleToggleSelect}
+              isHighlighted={highlightedGroupId === group.id}
             />
           ))}
         </div>
@@ -829,10 +858,10 @@ const NavModule = () => {
           </DialogHeader>
           <div className="py-4">
             <Select value={selectedTargetGroup} onValueChange={setSelectedTargetGroup}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('nav.selectGroupPlaceholder')} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper">
                 {groups.map(g => (
                   <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
                 ))}

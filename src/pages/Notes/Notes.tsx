@@ -152,7 +152,7 @@ const Notes = () => {
     if (saveStatus !== 'idle') setSaveStatus('idle');
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!editor || !isDirty) return;
     setSaveStatus('saving');
     try {
@@ -170,7 +170,19 @@ const Notes = () => {
       setSaveStatus('error');
       toast.error(t('notes.saveError'));
     }
-  };
+  }, [editor, isDirty, t]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave]);
 
   const handleCancel = () => {
     if (!savedSnapshot) return;
