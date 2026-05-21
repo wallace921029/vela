@@ -338,7 +338,7 @@ const GroupBlock = ({
     <div id={`group-${group.id}`} className="relative z-0 scroll-mt-24">
       {/* Highlight Backdrop */}
       <div 
-        className={`pointer-events-none absolute -inset-2 sm:-inset-3 -z-10 rounded-2xl transition-all duration-1000 ${
+        className={`pointer-events-none absolute -inset-1 sm:-inset-2 -z-10 rounded-xl transition-all duration-1000 ${
           isHighlighted 
             ? 'bg-primary/15 ring-2 ring-primary/50 dark:bg-primary/20 dark:ring-primary/50' 
             : 'bg-transparent ring-0 ring-transparent'
@@ -738,7 +738,7 @@ const NavModule = () => {
           </aside>
         )}
 
-        <div className="flex-1 min-w-0 space-y-10 pb-20">
+        <div className="flex-1 min-w-0 space-y-4 pb-20">
           {filteredGroups.map((group) => (
             <GroupBlock 
               key={group.id} 
