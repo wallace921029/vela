@@ -1,13 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Search, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from 'react-i18next';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import GoogleIcon from '@/assets/google.svg';
 import BingIcon from '@/assets/bing.svg';
 import BaiduIcon from '@/assets/baidu.svg';
@@ -24,6 +18,7 @@ const SearchBar = () => {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [engineId, setEngineId] = useState('google');
+  const isIconClickedRef = useRef(false);
 
   // Load saved search engine
   useEffect(() => {
@@ -38,21 +33,48 @@ const SearchBar = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     
+    const isIconClicked = isIconClickedRef.current;
+    isIconClickedRef.current = false; // reset immediately
+
     const target = localStorage.getItem('vela_search_target') === '_self' ? '_self' : '_blank';
-    const trimmedQuery = query.trim();
+    let trimmedQuery = query.trim();
+    let searchEngineUrl = currentEngine.url;
+    let wasSlashCommandOnly = false;
+
+    // Handle if they submit `/google` directly or `/google test`
+    const match = trimmedQuery.match(/^\/(google|bing|baidu)(?:\s+(.*))?$/i);
+    if (match) {
+      const matchedEngineId = match[1].toLowerCase();
+      trimmedQuery = match[2] ? match[2].trim() : '';
+      const matchedEngine = ENGINES.find(e => e.id === matchedEngineId);
+      if (matchedEngine) {
+        searchEngineUrl = matchedEngine.url;
+        changeEngine(matchedEngine.id);
+      }
+      if (!trimmedQuery) {
+        wasSlashCommandOnly = true;
+      }
+    }
     
     if (!trimmedQuery) {
+      if (wasSlashCommandOnly && !isIconClicked) {
+        // Just switched engine via Enter without text. Don't open page.
+        setQuery('');
+        return;
+      }
+
       try {
-        const urlObj = new URL(currentEngine.url);
+        const urlObj = new URL(searchEngineUrl);
         window.open(urlObj.origin, target);
       } catch (err) {
         // Fallback if URL parsing fails
-        window.open(currentEngine.url, target);
+        window.open(searchEngineUrl, target);
       }
+      setQuery('');
       return;
     }
 
-    window.open(`${currentEngine.url}${encodeURIComponent(trimmedQuery)}`, target);
+    window.open(`${searchEngineUrl}${encodeURIComponent(trimmedQuery)}`, target);
     setQuery('');
   };
 
@@ -64,35 +86,24 @@ const SearchBar = () => {
   return (
     <div className="w-full max-w-2xl mx-auto pb-16 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both">
       <form onSubmit={handleSearch} className="relative group flex items-center">
-        {/* Engine Switcher */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button 
+        {/* Engine Switcher (Small icons at top-left) */}
+        <div className="absolute top-2 left-7 z-10 flex items-center gap-2">
+          {ENGINES.map(engine => (
+            <button
+              key={engine.id}
               type="button"
-              className="absolute left-2 z-10 flex items-center gap-1.5 h-12 px-3 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 hover:text-primary transition-colors outline-none"
-              title="切换搜索引擎"
+              onClick={() => changeEngine(engine.id)}
+              className={`flex items-center justify-center transition-all duration-200 outline-none ${
+                engine.id === engineId 
+                  ? 'opacity-100 drop-shadow-sm' 
+                  : 'opacity-30 hover:opacity-80 grayscale hover:grayscale-0'
+              }`}
+              title={engine.name}
             >
-              <span className="w-6 h-6 flex items-center justify-center overflow-hidden bg-neutral-200 dark:bg-neutral-700 rounded-full text-neutral-700 dark:text-neutral-300 p-1">
-                <img src={currentEngine.icon} alt={currentEngine.name} className="w-full h-full object-contain drop-shadow-sm" />
-              </span>
-              <ChevronDown className="size-3.5 opacity-50" />
+              <img src={engine.icon} alt={engine.name} className="w-3.5 h-3.5 object-contain" />
             </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-32 rounded-xl">
-            {ENGINES.map(engine => (
-              <DropdownMenuItem 
-                key={engine.id} 
-                onClick={() => changeEngine(engine.id)}
-                className={`cursor-pointer rounded-lg ${engine.id === engineId ? "bg-primary/10 text-primary font-medium" : ""}`}
-              >
-                <span className="w-5 h-5 flex items-center justify-center overflow-hidden bg-neutral-100 dark:bg-neutral-800 rounded mr-2 p-0.5">
-                  <img src={engine.icon} alt={engine.name} className="w-full h-full object-contain" />
-                </span>
-                {engine.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          ))}
+        </div>
         
         {/* Search Input */}
         <Input
@@ -100,14 +111,15 @@ const SearchBar = () => {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('search.placeholder', { engine: currentEngine.name })}
-          className="w-full h-16 pl-20 pr-14 rounded-full bg-white dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-800 focus-visible:ring-0 focus-visible:border-primary/50 text-lg shadow-sm hover:shadow-md focus:shadow-lg transition-all"
+          className="w-full h-16 pl-7 pr-14 pt-3 rounded-full bg-white dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-800 focus-visible:ring-0 focus-visible:border-primary/50 text-lg shadow-sm hover:shadow-md focus:shadow-lg transition-all"
         />
 
         {/* Search Button */}
         <button
           type="submit"
+          onPointerDown={() => { isIconClickedRef.current = true; }}
           className="absolute right-2 w-12 h-12 flex items-center justify-center rounded-full text-neutral-400 hover:text-primary hover:bg-primary/10 transition-colors"
-          title="搜索"
+          title={t('search.placeholder', { engine: currentEngine.name })}
         >
           <Search className="size-5" />
         </button>

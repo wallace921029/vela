@@ -251,7 +251,7 @@ const resources = {
         "thunderstorm": "雷暴"
       },
       "search": {
-        "placeholder": "使用 {{engine}} 搜索..."
+        "placeholder": "输入 /google, /bing, /baidu 快速切换，或使用 {{engine}} 搜索..."
       },
       "nav": {
         "myNav": "我的导航",
@@ -557,7 +557,7 @@ const resources = {
         "thunderstorm": "Thunderstorm"
       },
       "search": {
-        "placeholder": "Search with {{engine}}..."
+        "placeholder": "Type /google, /bing, /baidu to switch, or search with {{engine}}..."
       },
       "nav": {
         "myNav": "My Navigation",
