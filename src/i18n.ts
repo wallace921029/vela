@@ -297,7 +297,10 @@ const resources = {
         "timeComfortable": "舒适时间显示",
         "showWeather": "显示天气日期",
         "searchNewTab": "搜索新标签打开",
-        "navNewTab": "书签新标签打开"
+        "navNewTab": "书签新标签打开",
+        "faviconService": "获取网站图标服务",
+        "faviconMirror": "Favicon.im",
+        "faviconOfficial": "Google 官方"
       },
       "defaultData": {
         "groupTitle": "导航",
@@ -605,7 +608,7 @@ const resources = {
         "searchNewTab": "Open search in new tab",
         "navNewTab": "Open links in new tab",
         "faviconService": "Favicon fetch service",
-        "faviconMirror": "Google Mirror",
+        "faviconMirror": "Favicon.im",
         "faviconOfficial": "Google Official"
       },
       "defaultData": {

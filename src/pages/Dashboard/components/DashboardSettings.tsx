@@ -23,14 +23,18 @@ export const DashboardSettings = () => {
   const [showWeather, setShowWeather] = useState(true);
   const [searchTarget, setSearchTarget] = useState<'_blank' | '_self'>('_blank');
   const [navTarget, setNavTarget] = useState<'_blank' | '_self'>('_blank');
-  const [faviconService, setFaviconService] = useState<'google-mirror' | 'google'>('google-mirror');
+  const [faviconService, setFaviconService] = useState<'favicon-im' | 'google'>('favicon-im');
 
   useEffect(() => {
     setTimeSize((localStorage.getItem('vela_time_size') as 'comfortable' | 'compact') || 'comfortable');
     setShowWeather(localStorage.getItem('vela_show_weather') !== 'false');
     setSearchTarget((localStorage.getItem('vela_search_target') as '_blank' | '_self') || '_blank');
     setNavTarget((localStorage.getItem('vela_nav_target') as '_blank' | '_self') || '_blank');
-    setFaviconService((localStorage.getItem('vela_favicon_service') as 'google-mirror' | 'google') || 'google-mirror');
+    let savedService = localStorage.getItem('vela_favicon_service');
+    if (savedService === 'google-mirror' || !savedService) {
+      savedService = 'favicon-im';
+    }
+    setFaviconService(savedService as 'favicon-im' | 'google');
   }, []);
 
   const updateSetting = (key: string, value: string, reload = false) => {
@@ -126,10 +130,10 @@ export const DashboardSettings = () => {
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-48 rounded-xl">
                 <DropdownMenuRadioGroup value={faviconService} onValueChange={(val) => {
-                  setFaviconService(val as 'google-mirror' | 'google');
+                  setFaviconService(val as 'favicon-im' | 'google');
                   updateSetting('vela_favicon_service', val, true);
                 }}>
-                  <DropdownMenuRadioItem value="google-mirror" className="cursor-pointer">
+                  <DropdownMenuRadioItem value="favicon-im" className="cursor-pointer">
                     {t('dashboard.faviconMirror')}
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="google" className="cursor-pointer">
