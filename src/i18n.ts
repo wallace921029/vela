@@ -50,7 +50,12 @@ const resources = {
         "deleteConfirmDescription": "确定要删除这篇笔记吗？此操作不可撤销。",
         "loadFailed": "笔记加载失败。",
         "createFailed": "新建笔记失败。",
-        "deleteFailed": "删除笔记失败。"
+        "deleteFailed": "删除笔记失败。",
+        "copy": "复制",
+        "copied": "已复制到剪贴板",
+        "copyFailed": "复制失败",
+        "modeText": "文本",
+        "modeMarkdown": "MD"
       },
       "common": {
         "or": "或",
@@ -359,7 +364,12 @@ const resources = {
         "deleteConfirmDescription": "Delete this note? This action cannot be undone.",
         "loadFailed": "Failed to load notes.",
         "createFailed": "Failed to create note.",
-        "deleteFailed": "Failed to delete note."
+        "deleteFailed": "Failed to delete note.",
+        "copy": "Copy",
+        "copied": "Copied to clipboard",
+        "copyFailed": "Failed to copy",
+        "modeText": "Text",
+        "modeMarkdown": "MD"
       },
       "validation": {
         "required": "Please fill in the required field.",

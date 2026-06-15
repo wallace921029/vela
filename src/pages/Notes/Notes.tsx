@@ -11,9 +11,15 @@ import {
   Trash2,
   AlignJustify,
   LayoutList,
+  Copy,
+  Undo2,
+  Save,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,6 +62,7 @@ interface ListResponse {
 type EditorState = { id: string; title: string; content: string };
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 type LayoutMode = 'compact' | 'comfortable';
+type ViewMode = 'edit' | 'preview';
 
 const PAGE_SIZE = 20;
 const LAYOUT_STORAGE_KEY = 'vela_notes_layout';
@@ -75,6 +82,7 @@ const Notes = () => {
     return localStorage.getItem(LAYOUT_STORAGE_KEY) === 'comfortable' ? 'comfortable' : 'compact';
   });
 
+  const [viewMode, setViewMode] = useState<ViewMode>('edit');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState<EditorState | null>(null);
@@ -139,6 +147,8 @@ const Notes = () => {
       return;
     }
     openNoteInEditor(note);
+    // Opening an existing note defaults to the markdown preview.
+    setViewMode('preview');
   };
 
   const handleSearchChange = (value: string) => {
@@ -190,6 +200,46 @@ const Notes = () => {
     setSaveStatus('idle');
   };
 
+  // Copy text to the clipboard. Prefers the async Clipboard API but falls back
+  // to a hidden textarea + execCommand so it works on insecure (HTTP) origins
+  // and older browsers, which is common for a self-hosted app.
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        // Fall through to the legacy approach.
+      }
+    }
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.top = '-9999px';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return ok;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!editor) return;
+    const ok = await copyToClipboard(editor.content);
+    if (ok) {
+      toast.success(t('notes.copied'));
+    } else {
+      toast.error(t('notes.copyFailed'));
+    }
+  };
+
   const handleCreate = async () => {
     try {
       const res = await request.post('/api/notes', { title: '', content: '' });
@@ -199,6 +249,8 @@ const Notes = () => {
       setNotes((prev) => [created, ...prev.filter((n) => n.id !== created.id)]);
       setTotal((prev) => prev + 1);
       openNoteInEditor(created);
+      // A brand-new note opens in text edit mode.
+      setViewMode('edit');
       window.setTimeout(() => titleInputRef.current?.focus(), 0);
     } catch {
       toast.error(t('notes.createFailed'));
@@ -402,34 +454,89 @@ const Notes = () => {
           )}
         </aside>
 
-        <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-border bg-card/50 backdrop-blur">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border border-border bg-card/50 backdrop-blur">
           {editor ? (
             <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-              <Input
-                ref={titleInputRef}
-                value={editor.title}
-                onChange={(e) => updateEditor({ title: e.target.value })}
-                placeholder={t('notes.titlePlaceholder')}
-                className="h-10 rounded-md border-0 bg-muted/60 px-3 text-base font-semibold shadow-none transition-colors hover:bg-muted/80 focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring/40 dark:bg-muted/40 dark:hover:bg-muted/55 dark:focus-visible:bg-muted/70"
-              />
-              <Textarea
-                value={editor.content}
-                onChange={(e) => updateEditor({ content: e.target.value })}
-                placeholder={t('notes.contentPlaceholder')}
-                className="min-h-0 flex-1 resize-none rounded-md border-0 bg-muted/60 px-3 py-2 text-sm shadow-none transition-colors hover:bg-muted/80 focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring/40 dark:bg-muted/40 dark:hover:bg-muted/55 dark:focus-visible:bg-muted/70"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  ref={titleInputRef}
+                  value={editor.title}
+                  onChange={(e) => updateEditor({ title: e.target.value })}
+                  placeholder={t('notes.titlePlaceholder')}
+                  className="h-10 flex-1 rounded-md border-0 bg-muted/60 px-3 text-base font-semibold shadow-none transition-colors hover:bg-muted/80 focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring/40 dark:bg-muted/40 dark:hover:bg-muted/55 dark:focus-visible:bg-muted/70"
+                />
+                <div className="flex shrink-0 items-center rounded-md bg-muted/60 p-0.5 dark:bg-muted/40">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('edit')}
+                    aria-pressed={viewMode === 'edit'}
+                    className={cn(
+                      'rounded px-2.5 py-1 text-xs font-medium transition-colors',
+                      viewMode === 'edit'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {t('notes.modeText')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('preview')}
+                    aria-pressed={viewMode === 'preview'}
+                    className={cn(
+                      'rounded px-2.5 py-1 text-xs font-medium transition-colors',
+                      viewMode === 'preview'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {t('notes.modeMarkdown')}
+                  </button>
+                </div>
+              </div>
+              {viewMode === 'preview' ? (
+                <div className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded-md bg-muted/60 px-3 py-2 dark:bg-muted/40">
+                  {editor.content.trim() ? (
+                    <div className="prose prose-sm max-w-none break-words [overflow-wrap:anywhere] dark:prose-invert [&_pre]:overflow-x-auto [&_table]:block [&_table]:w-max [&_table]:max-w-full [&_table]:overflow-x-auto">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{editor.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">{t('notes.contentPlaceholder')}</p>
+                  )}
+                </div>
+              ) : (
+                <Textarea
+                  value={editor.content}
+                  onChange={(e) => updateEditor({ content: e.target.value })}
+                  placeholder={t('notes.contentPlaceholder')}
+                  className="min-h-0 flex-1 resize-none rounded-md border-0 bg-muted/60 px-3 py-2 text-sm shadow-none transition-colors hover:bg-muted/80 focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring/40 dark:bg-muted/40 dark:hover:bg-muted/55 dark:focus-visible:bg-muted/70"
+                />
+              )}
               <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border/60 pt-3">
                 <div className="min-h-5">{saveIndicator}</div>
                 <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={handleCopy}
+                    disabled={!editor.content}
+                  >
+                    <Copy className="size-4" />
+                    {t('notes.copy')}
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={handleCancel}
                     disabled={!isDirty || saveStatus === 'saving'}
                   >
+                    <Undo2 className="size-4" />
                     {t('nav.cancel')}
                   </Button>
                   <Button onClick={handleSave} disabled={!isDirty || saveStatus === 'saving'}>
-                    {saveStatus === 'saving' && <Loader2 className="size-4 animate-spin" />}
+                    {saveStatus === 'saving' ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Save className="size-4" />
+                    )}
                     {t('nav.save')}
                   </Button>
                 </div>
