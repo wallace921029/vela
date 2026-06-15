@@ -4,11 +4,24 @@ const STORAGE_KEY = 'vela_wake_lock';
 
 export const useWakeLock = () => {
   const sentinelRef = useRef<WakeLockSentinel | null>(null);
+
+  // The keep-screen-on feature is disabled in mobile mode.
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   const isSupported =
-    typeof navigator !== 'undefined' && 'wakeLock' in navigator;
+    typeof navigator !== 'undefined' && 'wakeLock' in navigator && !isMobile;
 
   const [enabled, setEnabled] = useState<boolean>(() => {
-    if (!isSupported) return false;
+    if (typeof navigator === 'undefined' || !('wakeLock' in navigator)) return false;
     return localStorage.getItem(STORAGE_KEY) === '1';
   });
 
@@ -39,7 +52,7 @@ export const useWakeLock = () => {
   }, []);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !isSupported) {
       release();
       return;
     }
@@ -58,7 +71,7 @@ export const useWakeLock = () => {
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [enabled, acquire, release]);
+  }, [enabled, isSupported, acquire, release]);
 
   useEffect(() => {
     return () => {
@@ -78,5 +91,5 @@ export const useWakeLock = () => {
     });
   }, []);
 
-  return { enabled, toggle, isSupported };
+  return { enabled: enabled && isSupported, toggle, isSupported };
 };

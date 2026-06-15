@@ -14,6 +14,8 @@ import {
   Copy,
   Undo2,
   Save,
+  PanelLeft,
+  X,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -83,6 +85,9 @@ const Notes = () => {
   });
 
   const [viewMode, setViewMode] = useState<ViewMode>('edit');
+  // On mobile the note list is an off-canvas drawer; hidden by default so the
+  // editor takes the full width.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState<EditorState | null>(null);
@@ -141,6 +146,8 @@ const Notes = () => {
   };
 
   const handleSelect = (note: Note) => {
+    // Picking from the mobile drawer should reveal the editor.
+    setIsSidebarOpen(false);
     if (note.id === selectedId) {
       // Toggle off — no prompt, discard local edits silently.
       closeEditor();
@@ -251,6 +258,7 @@ const Notes = () => {
       openNoteInEditor(created);
       // A brand-new note opens in text edit mode.
       setViewMode('edit');
+      setIsSidebarOpen(false);
       window.setTimeout(() => titleInputRef.current?.focus(), 0);
     } catch {
       toast.error(t('notes.createFailed'));
@@ -330,8 +338,25 @@ const Notes = () => {
         className="mb-0"
       />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
-        <aside className="flex min-h-0 flex-col rounded-xl border border-border bg-card/50 backdrop-blur md:w-72 md:shrink-0">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
+        {/* Mobile drawer backdrop */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+        <aside
+          className={cn(
+            'flex min-h-0 flex-col border border-border bg-card backdrop-blur',
+            // Mobile: off-canvas drawer sliding in from the left.
+            'fixed inset-y-0 left-0 z-50 w-72 max-w-[85%] rounded-none shadow-xl transition-transform duration-300 ease-in-out',
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+            // Desktop: static column in the flex row, no drawer behavior.
+            'md:static md:z-auto md:w-72 md:shrink-0 md:translate-x-0 md:rounded-xl md:bg-card/50 md:shadow-none md:transition-none',
+          )}
+        >
           <div className="flex items-center gap-1.5 border-b border-border/60 p-2">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -364,6 +389,16 @@ const Notes = () => {
             >
               <Plus className="size-4" />
               <span className="sr-only">{t('notes.newNote')}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(false)}
+              title={t('notes.closeList')}
+              className="size-9 shrink-0 md:hidden"
+            >
+              <X className="size-4" />
+              <span className="sr-only">{t('notes.closeList')}</span>
             </Button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-2">
@@ -455,6 +490,22 @@ const Notes = () => {
         </aside>
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border border-border bg-card/50 backdrop-blur">
+          {/* Mobile header: opens the note list drawer */}
+          <div className="flex items-center gap-2 border-b border-border/60 p-2 md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(true)}
+              title={t('notes.openList')}
+              className="size-9 shrink-0"
+            >
+              <PanelLeft className="size-4" />
+              <span className="sr-only">{t('notes.openList')}</span>
+            </Button>
+            <span className="line-clamp-1 text-sm font-medium">
+              {editor ? editor.title || t('notes.untitled') : t('notes.title')}
+            </span>
+          </div>
           {editor ? (
             <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
               <div className="flex items-center gap-2">

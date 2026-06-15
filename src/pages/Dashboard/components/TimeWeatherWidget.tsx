@@ -252,7 +252,7 @@ const TimeWeatherWidget = () => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center space-y-6 pt-10 pb-8 animate-in fade-in zoom-in duration-700">
+    <div className="hidden flex-col items-center justify-center space-y-6 pt-10 pb-8 animate-in fade-in zoom-in duration-700 md:flex">
       <div className={`${timeSize === 'compact' ? 'text-5xl md:text-6xl' : 'text-7xl md:text-8xl'} font-black tracking-tighter text-neutral-800 dark:text-neutral-100 drop-shadow-sm font-sans select-none transition-all duration-300`}>
         {timeString}
       </div>

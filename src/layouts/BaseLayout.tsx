@@ -32,6 +32,7 @@ import { useRef } from "react";
 import { toast } from "sonner";
 import { importBookmarksFile } from "@/utils/bookmarkImport";
 import AuroraBackground from "@/components/AuroraBackground";
+import ScrollToTop from "@/components/ScrollToTop";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import logo from "@/assets/apple-touch-icon.png";
 
@@ -107,7 +108,7 @@ const BaseLayout = () => {
                 aria-pressed={wakeLock.enabled}
                 title={t(wakeLock.enabled ? "header.keepScreenOff" : "header.keepScreenOn")}
                 className={
-                  "h-9 w-9 rounded-full transition-colors " +
+                  "hidden h-9 w-9 rounded-full transition-colors md:inline-flex " +
                   (wakeLock.enabled
                     ? "text-emerald-500 hover:text-emerald-400 dark:text-emerald-400 dark:hover:text-emerald-300"
                     : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50")
@@ -251,6 +252,8 @@ const BaseLayout = () => {
           className="vela-wake-overlay pointer-events-none fixed inset-0 z-50"
         />
       )}
+
+      <ScrollToTop />
     </div>
   );
 };

@@ -20,6 +20,17 @@ const SearchBar = () => {
   const [engineId, setEngineId] = useState('google');
   const isIconClickedRef = useRef(false);
 
+  // On mobile the search box is compact and drops its placeholder.
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   // Load saved search engine
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -84,7 +95,7 @@ const SearchBar = () => {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto pb-16 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both">
+    <div className="w-full max-w-2xl mx-auto pb-4 md:pb-16 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both">
       <form onSubmit={handleSearch} className="relative group flex items-center">
         {/* Engine Switcher (Small icons at top-left) */}
         <div className="absolute top-2 left-7 z-10 flex items-center gap-2">
@@ -110,18 +121,18 @@ const SearchBar = () => {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={t('search.placeholder', { engine: currentEngine.name })}
-          className="w-full h-16 pl-7 pr-14 pt-3 rounded-full bg-white dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-800 focus-visible:ring-0 focus-visible:border-primary/50 text-lg shadow-sm hover:shadow-md focus:shadow-lg transition-all"
+          placeholder={isMobile ? '' : t('search.placeholder', { engine: currentEngine.name })}
+          className="w-full h-12 md:h-16 pl-7 pr-12 md:pr-14 pt-2 md:pt-3 rounded-full bg-white dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-800 focus-visible:ring-0 focus-visible:border-primary/50 text-base md:text-lg shadow-sm hover:shadow-md focus:shadow-lg transition-all"
         />
 
         {/* Search Button */}
         <button
           type="submit"
           onPointerDown={() => { isIconClickedRef.current = true; }}
-          className="absolute right-2 w-12 h-12 flex items-center justify-center rounded-full text-neutral-400 hover:text-primary hover:bg-primary/10 transition-colors"
+          className="absolute right-1.5 md:right-2 w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-neutral-400 hover:text-primary hover:bg-primary/10 transition-colors"
           title={t('search.placeholder', { engine: currentEngine.name })}
         >
-          <Search className="size-5" />
+          <Search className="size-4 md:size-5" />
         </button>
       </form>
     </div>

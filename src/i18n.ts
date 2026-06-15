@@ -55,11 +55,14 @@ const resources = {
         "copied": "已复制到剪贴板",
         "copyFailed": "复制失败",
         "modeText": "文本",
-        "modeMarkdown": "MD"
+        "modeMarkdown": "MD",
+        "openList": "打开笔记列表",
+        "closeList": "关闭笔记列表"
       },
       "common": {
         "or": "或",
-        "search": "搜索"
+        "search": "搜索",
+        "backToTop": "回到顶部"
       },
       "validation": {
         "required": "请填写必填项。",
@@ -369,7 +372,9 @@ const resources = {
         "copied": "Copied to clipboard",
         "copyFailed": "Failed to copy",
         "modeText": "Text",
-        "modeMarkdown": "MD"
+        "modeMarkdown": "MD",
+        "openList": "Open note list",
+        "closeList": "Close note list"
       },
       "validation": {
         "required": "Please fill in the required field.",
@@ -550,7 +555,8 @@ const resources = {
       },
       "common": {
         "or": "or",
-        "search": "Search"
+        "search": "Search",
+        "backToTop": "Back to top"
       },
       "weather": {
         "sunny": "Sunny",

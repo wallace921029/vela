@@ -462,6 +462,18 @@ const NavModule = () => {
   // Highlight state
   const [highlightedGroupId, setHighlightedGroupId] = useState<string | null>(null);
 
+  // On mobile, nav cards always render at the smallest size.
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  const effectiveCardSize: CardSize = isMobile ? 'extra-small' : cardSize;
+
   if (!isLoaded) {
     return <div className="flex justify-center py-20 text-neutral-400">Loading...</div>;
   }
@@ -631,8 +643,8 @@ const NavModule = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300 fill-mode-both">
-      {/* Global Operations Bar */}
-      <div className="flex justify-center items-center gap-2 px-2">
+      {/* Global Operations Bar — hidden on mobile */}
+      <div className="hidden md:flex justify-center items-center gap-2 px-2">
         {/* Search (always expanded, per requirements) */}
         <div className="relative flex items-center">
           <Search className="absolute left-2.5 size-3.5 text-neutral-400 pointer-events-none" />
@@ -751,7 +763,7 @@ const NavModule = () => {
               onMoveItem={handleOpenMoveDialog}
               onSortItems={sortItems}
               onOpenCustomSort={setCustomSortItemOpenFor}
-              cardSize={cardSize}
+              cardSize={effectiveCardSize}
               isBatchMode={isBatchMode}
               selectedItems={selectedItems}
               onToggleSelect={handleToggleSelect}

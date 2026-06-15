@@ -47,7 +47,7 @@ export const DashboardSettings = () => {
   };
 
   return (
-    <div className="absolute top-6 right-6 z-50">
+    <div className="absolute top-6 right-6 z-50 hidden md:block">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
