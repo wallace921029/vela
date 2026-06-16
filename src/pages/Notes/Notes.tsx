@@ -26,12 +26,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -46,16 +40,19 @@ import ContentPageLayout, { ContentPageHeader } from '@/layouts/ContentPageLayou
 import TablePagination from '@/pages/SystemSettings/components/TablePagination';
 import request from '@/utils/request';
 
-interface Note {
+interface NoteSummary {
   id: string;
   title: string;
-  content: string;
   createdAt: number;
   updatedAt: number;
 }
 
+interface Note extends NoteSummary {
+  content: string;
+}
+
 interface ListResponse {
-  items: Note[];
+  items: NoteSummary[];
   total: number;
   page: number;
   pageSize: number;
@@ -65,8 +62,9 @@ type EditorState = { id: string; title: string; content: string };
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 type LayoutMode = 'compact' | 'comfortable';
 type ViewMode = 'edit' | 'preview';
+type ActionMenuState = { note: NoteSummary; top: number; left: number };
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 const LAYOUT_STORAGE_KEY = 'vela_notes_layout';
 
 // authHeaders removed since request interceptor handles it
@@ -74,7 +72,7 @@ const LAYOUT_STORAGE_KEY = 'vela_notes_layout';
 const Notes = () => {
   const { t } = useTranslation();
 
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useState<NoteSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
@@ -92,11 +90,16 @@ const Notes = () => {
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState<EditorState | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
-  const [deleteTarget, setDeleteTarget] = useState<Note | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<NoteSummary | null>(null);
+  const [actionMenu, setActionMenu] = useState<ActionMenuState | null>(null);
   const [isListLoading, setIsListLoading] = useState(false);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const detailRequestRef = useRef(0);
+  const actionMenuRef = useRef<HTMLDivElement | null>(null);
+  const actionTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const isDirty =
     !!editor &&
@@ -130,6 +133,32 @@ const Notes = () => {
 
   const refetchList = useCallback(() => setReloadKey((k) => k + 1), []);
 
+  useEffect(() => {
+    if (!actionMenu) return;
+
+    const closeOnPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (actionMenuRef.current?.contains(target) || actionTriggerRef.current?.contains(target)) return;
+      setActionMenu(null);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setActionMenu(null);
+    };
+    const closeOnScrollOrResize = () => setActionMenu(null);
+
+    document.addEventListener('pointerdown', closeOnPointerDown);
+    document.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('scroll', closeOnScrollOrResize, true);
+    window.addEventListener('resize', closeOnScrollOrResize);
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOnPointerDown);
+      document.removeEventListener('keydown', closeOnEscape);
+      window.removeEventListener('scroll', closeOnScrollOrResize, true);
+      window.removeEventListener('resize', closeOnScrollOrResize);
+    };
+  }, [actionMenu]);
+
   const openNoteInEditor = (note: Note) => {
     setSelectedId(note.id);
     const snapshot: EditorState = { id: note.id, title: note.title, content: note.content };
@@ -139,13 +168,15 @@ const Notes = () => {
   };
 
   const closeEditor = () => {
+    detailRequestRef.current += 1;
     setSelectedId(null);
     setEditor(null);
     setSavedSnapshot(null);
     setSaveStatus('idle');
+    setIsDetailLoading(false);
   };
 
-  const handleSelect = (note: Note) => {
+  const handleSelect = async (note: NoteSummary) => {
     // Picking from the mobile drawer should reveal the editor.
     setIsSidebarOpen(false);
     if (note.id === selectedId) {
@@ -153,9 +184,26 @@ const Notes = () => {
       closeEditor();
       return;
     }
-    openNoteInEditor(note);
-    // Opening an existing note defaults to the markdown preview.
+    const requestId = detailRequestRef.current + 1;
+    detailRequestRef.current = requestId;
+    setSelectedId(note.id);
+    setEditor(null);
+    setSavedSnapshot(null);
+    setSaveStatus('idle');
+    setIsDetailLoading(true);
     setViewMode('preview');
+
+    try {
+      const res = await request.get(`/api/notes/${note.id}`);
+      if (detailRequestRef.current !== requestId) return;
+      openNoteInEditor(res.data as Note);
+    } catch {
+      if (detailRequestRef.current !== requestId) return;
+      closeEditor();
+      toast.error(t('notes.loadFailed'));
+    } finally {
+      if (detailRequestRef.current === requestId) setIsDetailLoading(false);
+    }
   };
 
   const handleSearchChange = (value: string) => {
@@ -178,7 +226,13 @@ const Notes = () => {
       setSavedSnapshot({ id: updated.id, title: updated.title, content: updated.content });
       setEditor({ id: updated.id, title: updated.title, content: updated.content });
       setNotes((prev) => {
-        const next = prev.map((n) => (n.id === updated.id ? updated : n));
+        const updatedSummary: NoteSummary = {
+          id: updated.id,
+          title: updated.title,
+          createdAt: updated.createdAt,
+          updatedAt: updated.updatedAt,
+        };
+        const next = prev.map((n) => (n.id === updated.id ? updatedSummary : n));
         next.sort((a, b) => b.updatedAt - a.updatedAt);
         return next;
       });
@@ -251,9 +305,15 @@ const Notes = () => {
     try {
       const res = await request.post('/api/notes', { title: '', content: '' });
       const created = res.data as Note;
+      const createdSummary: NoteSummary = {
+        id: created.id,
+        title: created.title,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+      };
       setSearchInput('');
       setPage(1);
-      setNotes((prev) => [created, ...prev.filter((n) => n.id !== created.id)]);
+      setNotes((prev) => [createdSummary, ...prev.filter((n) => n.id !== created.id)]);
       setTotal((prev) => prev + 1);
       openNoteInEditor(created);
       // A brand-new note opens in text edit mode.
@@ -291,18 +351,25 @@ const Notes = () => {
     localStorage.setItem(LAYOUT_STORAGE_KEY, next);
   };
 
-  const derivedTitle = (note: Note) => {
-    if (note.title) return note.title;
-    const firstLine = note.content.split('\n').find((line) => line.trim().length > 0);
-    return firstLine?.trim() || t('notes.untitled');
+  const handleActionMenuToggle = (note: NoteSummary, trigger: HTMLButtonElement) => {
+    actionTriggerRef.current = trigger;
+    if (actionMenu?.note.id === note.id) {
+      setActionMenu(null);
+      return;
+    }
+
+    const rect = trigger.getBoundingClientRect();
+    const menuWidth = 128;
+    setActionMenu({
+      note,
+      top: rect.bottom + 4,
+      left: Math.max(8, rect.right - menuWidth),
+    });
   };
 
-  const derivedExcerpt = (note: Note) => {
-    const trimmed = note.content.trim();
-    if (!trimmed) return '';
-    const lines = trimmed.split('\n').map((line) => line.trim()).filter(Boolean);
-    if (!note.title && lines.length > 0) lines.shift();
-    return lines.join(' ').slice(0, 120);
+  const derivedTitle = (note: NoteSummary) => {
+    if (note.title) return note.title;
+    return t('notes.untitled');
   };
 
   const saveIndicator = useMemo(() => {
@@ -417,7 +484,6 @@ const Notes = () => {
               <ul className="flex flex-col gap-1">
                 {notes.map((note) => {
                   const isActive = note.id === selectedId;
-                  const excerpt = isComfortable ? derivedExcerpt(note) : '';
                   return (
                     <li key={note.id} className="group relative">
                       <div
@@ -439,38 +505,27 @@ const Notes = () => {
                         }
                       >
                         <span className="line-clamp-1 text-sm font-medium">{derivedTitle(note)}</span>
-                        {isComfortable && excerpt && (
-                          <span className="line-clamp-2 text-xs text-muted-foreground">{excerpt}</span>
-                        )}
                         <span className="text-[11px] text-muted-foreground">
                           {formatDistanceToNow(note.updatedAt, { addSuffix: true })}
                         </span>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => e.stopPropagation()}
-                            className="absolute right-1.5 top-1.5 size-7 rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100"
-                            aria-label={t('notes.itemActions')}
-                          >
-                            <MoreHorizontal className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-32">
-                          <DropdownMenuItem
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              setDeleteTarget(note);
-                            }}
-                            className="cursor-pointer text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 size-4" />
-                            {t('notes.delete')}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleActionMenuToggle(note, e.currentTarget);
+                        }}
+                        className={cn(
+                          'absolute right-1.5 top-1.5 size-7 rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100',
+                          actionMenu?.note.id === note.id && 'opacity-100',
+                        )}
+                        aria-label={t('notes.itemActions')}
+                        aria-haspopup="menu"
+                        aria-expanded={actionMenu?.note.id === note.id}
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </Button>
                     </li>
                   );
                 })}
@@ -484,6 +539,7 @@ const Notes = () => {
                 pageSize={PAGE_SIZE}
                 total={total}
                 onPageChange={setPage}
+                compact
               />
             </div>
           )}
@@ -593,6 +649,11 @@ const Notes = () => {
                 </div>
               </div>
             </div>
+          ) : isDetailLoading ? (
+            <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              {t('system.loading')}
+            </div>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-muted-foreground">
               <FileText className="size-10" />
@@ -601,6 +662,28 @@ const Notes = () => {
           )}
         </section>
       </div>
+
+      {actionMenu && (
+        <div
+          ref={actionMenuRef}
+          role="menu"
+          className="fixed z-50 w-32 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+          style={{ top: actionMenu.top, left: actionMenu.left }}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setDeleteTarget(actionMenu.note);
+              setActionMenu(null);
+            }}
+            className="flex w-full cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-sm text-destructive outline-none hover:bg-destructive/10 focus:bg-destructive/10"
+          >
+            <Trash2 className="size-4 shrink-0" />
+            {t('notes.delete')}
+          </button>
+        </div>
+      )}
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>

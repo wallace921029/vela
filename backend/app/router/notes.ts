@@ -23,15 +23,18 @@ interface IdParams {
   id: string;
 }
 
+type NoteSummaryRow = Pick<NoteRow, 'id' | 'title' | 'created_at' | 'updated_at'>;
+
 const MAX_TITLE = 200;
 const MAX_CONTENT = 100_000;
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
 
 export const registerNotesRoutes = (fastify: FastifyInstance) => {
   const auth = { preValidation: [(fastify as any).authenticate] };
 
   fastify.get('/api/notes', auth, listNotes);
+  fastify.get<{ Params: IdParams }>('/api/notes/:id', auth, getNote);
   fastify.post('/api/notes', auth, createNote);
   fastify.patch<{ Params: IdParams; Body: UpdateBody }>('/api/notes/:id', auth, updateNote);
   fastify.delete<{ Params: IdParams }>('/api/notes/:id', auth, deleteNote);
@@ -50,7 +53,7 @@ export const registerNotesRoutes = (fastify: FastifyInstance) => {
     const likeArg = hasQuery ? `%${escapeLike(q)}%` : null;
 
     let totalRow: { count: number };
-    let rows: NoteRow[];
+    let rows: NoteSummaryRow[];
 
     if (hasQuery) {
       totalRow = db
@@ -62,25 +65,38 @@ export const registerNotesRoutes = (fastify: FastifyInstance) => {
 
       rows = db
         .prepare(
-          `SELECT * FROM notes
+          `SELECT id, title, created_at, updated_at FROM notes
            WHERE user_id = ? AND (title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\')
            ORDER BY updated_at DESC
            LIMIT ? OFFSET ?`,
         )
-        .all(userId, likeArg, likeArg, pageSize, offset) as NoteRow[];
+        .all(userId, likeArg, likeArg, pageSize, offset) as NoteSummaryRow[];
     } else {
       totalRow = db.prepare('SELECT COUNT(*) AS count FROM notes WHERE user_id = ?').get(userId) as { count: number };
       rows = db
-        .prepare('SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?')
-        .all(userId, pageSize, offset) as NoteRow[];
+        .prepare('SELECT id, title, created_at, updated_at FROM notes WHERE user_id = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?')
+        .all(userId, pageSize, offset) as NoteSummaryRow[];
     }
 
     return {
-      items: rows.map(toPublicNote),
+      items: rows.map(toPublicNoteSummary),
       total: totalRow.count,
       page,
       pageSize,
     };
+  }
+
+  /**
+   * Returns one note with its content for the authenticated user.
+   */
+  async function getNote(request: FastifyRequest<{ Params: IdParams }>, reply: FastifyReply) {
+    const userId = (request.user as AuthUser).id;
+    const { id } = request.params;
+    const row = db.prepare('SELECT * FROM notes WHERE id = ? AND user_id = ?').get(id, userId) as NoteRow | undefined;
+    if (!row) {
+      return reply.status(404).send({ error: 'Note not found' });
+    }
+    return toPublicNote(row);
   }
 
   /**
@@ -172,6 +188,15 @@ export const registerNotesRoutes = (fastify: FastifyInstance) => {
       id: row.id,
       title: row.title ?? '',
       content: row.content,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  function toPublicNoteSummary(row: NoteSummaryRow) {
+    return {
+      id: row.id,
+      title: row.title ?? '',
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
