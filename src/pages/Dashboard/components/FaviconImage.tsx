@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-
-const faviconServices = {
-  'favicon-im': (_url: string, domain: string) => `https://favicon.im/${domain}?larger=true`,
-  'google': (url: string) => `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=48&url=${encodeURIComponent(url)}`
-};
+import {
+  FAVICON_SERVICE_STORAGE_KEY,
+  getFaviconServiceUrl,
+  normalizeFaviconService,
+} from '@/utils/favicon';
 
 export const FaviconImage = ({ src, title, url, className = "" }: { src?: string, title: string, url: string, className?: string }) => {
   const [errorCount, setErrorCount] = useState(0);
@@ -21,13 +21,9 @@ export const FaviconImage = ({ src, title, url, className = "" }: { src?: string
     const list = [];
     if (src) list.push(src);
     if (domain) {
-      let serviceKey = localStorage.getItem('vela_favicon_service');
-      if (serviceKey === 'google-mirror' || !serviceKey) {
-        serviceKey = 'favicon-im';
-      }
-      const service = faviconServices[serviceKey as keyof typeof faviconServices] || faviconServices['favicon-im'];
+      const service = normalizeFaviconService(localStorage.getItem(FAVICON_SERVICE_STORAGE_KEY));
       const targetUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-      list.push(service(targetUrl, domain));
+      list.push(getFaviconServiceUrl(service, targetUrl, domain));
     }
     return list;
   }, [src, domain, url]);

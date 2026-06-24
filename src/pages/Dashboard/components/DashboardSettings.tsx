@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Settings, Clock, CloudSun, ExternalLink, Link, Globe } from 'lucide-react';
 import {
@@ -15,27 +15,41 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import {
+  FAVICON_SERVICE_OPTIONS,
+  FAVICON_SERVICE_STORAGE_KEY,
+  type FaviconService,
+  normalizeFaviconService,
+} from '@/utils/favicon';
+
+const readSetting = <T extends string>(key: string, fallback: T): T => {
+  if (typeof window === 'undefined') {
+    return fallback;
+  }
+
+  return (localStorage.getItem(key) as T) || fallback;
+};
 
 export const DashboardSettings = () => {
   const { t } = useTranslation();
   
-  const [timeSize, setTimeSize] = useState<'comfortable' | 'compact'>('comfortable');
-  const [showWeather, setShowWeather] = useState(true);
-  const [searchTarget, setSearchTarget] = useState<'_blank' | '_self'>('_blank');
-  const [navTarget, setNavTarget] = useState<'_blank' | '_self'>('_blank');
-  const [faviconService, setFaviconService] = useState<'favicon-im' | 'google'>('favicon-im');
-
-  useEffect(() => {
-    setTimeSize((localStorage.getItem('vela_time_size') as 'comfortable' | 'compact') || 'comfortable');
-    setShowWeather(localStorage.getItem('vela_show_weather') !== 'false');
-    setSearchTarget((localStorage.getItem('vela_search_target') as '_blank' | '_self') || '_blank');
-    setNavTarget((localStorage.getItem('vela_nav_target') as '_blank' | '_self') || '_blank');
-    let savedService = localStorage.getItem('vela_favicon_service');
-    if (savedService === 'google-mirror' || !savedService) {
-      savedService = 'favicon-im';
-    }
-    setFaviconService(savedService as 'favicon-im' | 'google');
-  }, []);
+  const [timeSize, setTimeSize] = useState<'comfortable' | 'compact'>(() =>
+    readSetting<'comfortable' | 'compact'>('vela_time_size', 'comfortable'),
+  );
+  const [showWeather, setShowWeather] = useState(() =>
+    typeof window === 'undefined' ? true : localStorage.getItem('vela_show_weather') !== 'false',
+  );
+  const [searchTarget, setSearchTarget] = useState<'_blank' | '_self'>(() =>
+    readSetting<'_blank' | '_self'>('vela_search_target', '_blank'),
+  );
+  const [navTarget, setNavTarget] = useState<'_blank' | '_self'>(() =>
+    readSetting<'_blank' | '_self'>('vela_nav_target', '_blank'),
+  );
+  const [faviconService, setFaviconService] = useState<FaviconService>(() =>
+    normalizeFaviconService(
+      typeof window === 'undefined' ? null : localStorage.getItem(FAVICON_SERVICE_STORAGE_KEY),
+    ),
+  );
 
   const updateSetting = (key: string, value: string, reload = false) => {
     localStorage.setItem(key, value);
@@ -128,17 +142,17 @@ export const DashboardSettings = () => {
                 <Globe className="size-4 opacity-70" />
                 <span>{t('dashboard.faviconService')}</span>
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="w-48 rounded-xl">
+              <DropdownMenuSubContent className="w-56 rounded-xl">
                 <DropdownMenuRadioGroup value={faviconService} onValueChange={(val) => {
-                  setFaviconService(val as 'favicon-im' | 'google');
-                  updateSetting('vela_favicon_service', val, true);
+                  const nextValue = normalizeFaviconService(val);
+                  setFaviconService(nextValue);
+                  updateSetting(FAVICON_SERVICE_STORAGE_KEY, nextValue, true);
                 }}>
-                  <DropdownMenuRadioItem value="favicon-im" className="cursor-pointer">
-                    {t('dashboard.faviconMirror')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="google" className="cursor-pointer">
-                    {t('dashboard.faviconOfficial')}
-                  </DropdownMenuRadioItem>
+                  {FAVICON_SERVICE_OPTIONS.map((option) => (
+                    <DropdownMenuRadioItem key={option.id} value={option.id} className="cursor-pointer">
+                      {t(option.labelKey)}
+                    </DropdownMenuRadioItem>
+                  ))}
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
             </DropdownMenuSub>

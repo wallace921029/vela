@@ -259,7 +259,11 @@ const resources = {
         "thunderstorm": "雷暴"
       },
       "search": {
-        "placeholder": "输入 /google, /bing, /baidu 快速切换，或使用 {{engine}} 搜索..."
+        "placeholder": "输入 /google, /bing, /baidu 快速切换，或使用 {{engine}} 搜索...",
+        "tipsTitle": "命令快捷方式",
+        "tipsCycle": "点击左侧图标循环切换引擎",
+        "switchEngine": "切换引擎（当前：{{engine}}）",
+        "submit": "搜索"
       },
       "nav": {
         "myNav": "我的导航",
@@ -307,8 +311,11 @@ const resources = {
         "searchNewTab": "搜索新标签打开",
         "navNewTab": "书签新标签打开",
         "faviconService": "获取网站图标服务",
-        "faviconMirror": "Favicon.im",
-        "faviconOfficial": "Google 官方"
+        "faviconGoogleV2": "Google V2",
+        "faviconGoogleV1": "Google V1",
+        "faviconYandex": "Yandex",
+        "faviconDuckDuckGo": "DuckDuckGo",
+        "faviconBitwarden": "Bitwarden"
       },
       "defaultData": {
         "groupTitle": "导航",
@@ -576,7 +583,11 @@ const resources = {
         "thunderstorm": "Thunderstorm"
       },
       "search": {
-        "placeholder": "Type /google, /bing, /baidu to switch, or search with {{engine}}..."
+        "placeholder": "Type /google, /bing, /baidu to switch, or search with {{engine}}...",
+        "tipsTitle": "Quick commands",
+        "tipsCycle": "Click the engine icon to cycle",
+        "switchEngine": "Switch engine (current: {{engine}})",
+        "submit": "Search"
       },
       "nav": {
         "myNav": "My Navigation",
@@ -624,8 +635,11 @@ const resources = {
         "searchNewTab": "Open search in new tab",
         "navNewTab": "Open links in new tab",
         "faviconService": "Favicon fetch service",
-        "faviconMirror": "Favicon.im",
-        "faviconOfficial": "Google Official"
+        "faviconGoogleV2": "Google V2",
+        "faviconGoogleV1": "Google V1",
+        "faviconYandex": "Yandex",
+        "faviconDuckDuckGo": "DuckDuckGo",
+        "faviconBitwarden": "Bitwarden"
       },
       "defaultData": {
         "groupTitle": "Navigation",
