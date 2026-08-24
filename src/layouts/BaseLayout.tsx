@@ -92,12 +92,14 @@ const BaseLayout = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/notes')}
+              asChild
               title={t('header.quickNotes')}
               className="h-9 w-9 rounded-full text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
             >
-              <NotebookPen className="h-4 w-4" />
-              <span className="sr-only">{t('header.quickNotes')}</span>
+              <a href="/notes" target="_blank" rel="noreferrer">
+                <NotebookPen className="h-4 w-4" />
+                <span className="sr-only">{t('header.quickNotes')}</span>
+              </a>
             </Button>
 
             {wakeLock.isSupported && (
